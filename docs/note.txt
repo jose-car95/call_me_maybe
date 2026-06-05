@@ -1,0 +1,12 @@
+
+------ Poceso de generacion del LLM: ------------
+Prompt -> Tokenization -> Input IDs -> LLM -> Logits -> Next Token Selection
+
+
+Logits: El modelo produce una distribucion de probabilidad(logits), sobre
+    todos los posibles tokens siguientes
+
+
+======== DECODIFICACION RESTRINGIDA ?????
+En este proyecto debe asegurar un JSON sintacticamente valido e imponer
+    un esquema especifico
