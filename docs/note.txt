@@ -10,3 +10,11 @@ Logits: El modelo produce una distribucion de probabilidad(logits), sobre
 ======== DECODIFICACION RESTRINGIDA ?????
 En este proyecto debe asegurar un JSON sintacticamente valido e imponer
     un esquema especifico
+
+
+
+1- LLM:
+LLM
+    Un LLM es un modelo que predice el siguiente token.
+    No “piensa” como una persona ni ejecuta código.
+    Recibe texto convertido en números y devuelve puntuaciones sobre cuál podría ser el siguiente token.
