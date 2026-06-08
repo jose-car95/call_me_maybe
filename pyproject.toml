@@ -12,6 +12,7 @@ dependencies = [
 dev = [
     "flake8>=7.0.0",
     "mypy>=1.8.0",
+    "pytest>=8.0.0",
 ]
 
 [tool.uv]
@@ -24,3 +25,7 @@ exclude = [
     "^docs/",
     "^llm_sdk/",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

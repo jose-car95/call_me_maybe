@@ -1,13 +1,25 @@
-"""Pydantic models for function calling inputs and outputs."""
+"""Domain models for function calling inputs and outputs."""
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+)
 
 
-JsonType = Literal["string", "number", "integer", "boolean", "object", "array"]
+JsonType = Literal[
+    "string",
+    "number",
+    "integer",
+    "boolean",
+    "object",
+    "array",
+]
 
 
 class ParameterSpec(BaseModel):
@@ -36,16 +48,23 @@ class FunctionDefinition(BaseModel):
     parameters: dict[str, ParameterSpec]
     returns: ReturnSpec
 
+    @field_validator("name", "description")
+    @classmethod
+    def reject_blank_text(cls, value: str) -> str:
+        """Reject strings containing only whitespace."""
+        if not value.strip():
+            raise ValueError("value must not be blank")
+        return value
+
     @field_validator("parameters")
     @classmethod
-    def validate_parameters(
+    def reject_blank_parameter_names(
         cls,
         parameters: dict[str, ParameterSpec],
     ) -> dict[str, ParameterSpec]:
-        """Ensure parameter names are non-empty."""
-        for name in parameters:
-            if not name.strip():
-                raise ValueError("parameter names must not be empty")
+        """Reject empty or whitespace-only parameter names."""
+        if any(not name.strip() for name in parameters):
+            raise ValueError("parameter names must not be blank")
         return parameters
 
 
@@ -55,6 +74,14 @@ class PromptCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1)
+
+    @field_validator("prompt")
+    @classmethod
+    def reject_blank_prompt(cls, value: str) -> str:
+        """Reject prompts containing only whitespace."""
+        if not value.strip():
+            raise ValueError("prompt must not be blank")
+        return value
 
 
 class FunctionCallResult(BaseModel):

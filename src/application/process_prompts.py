@@ -1,14 +1,15 @@
-"""Initial project pipeline.
-
-The real LLM-based function selection will be implemented in later milestones.
-This module keeps Hito 1 executable while preserving the final output shape.
-"""
+"""Use case for processing prompts into function call results."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from src.models import FunctionDefinition, FunctionCallResult, PromptCase
+from src.domain import (
+    FunctionCallResult,
+    FunctionDefinition,
+    FunctionDefinitionError,
+    PromptCase,
+)
 
 
 def _placeholder_value(type_name: str) -> Any:
@@ -24,25 +25,27 @@ def _placeholder_value(type_name: str) -> Any:
     return ""
 
 
-def build_initial_results(
+def process_prompts(
     prompts: list[PromptCase],
     functions: list[FunctionDefinition],
 ) -> list[FunctionCallResult]:
-    """Build placeholder results from the first function definition."""
+    """Build provisional calls using the first available function."""
     if not functions:
-        raise ValueError("at least one function definition is required")
+        raise FunctionDefinitionError(
+            "at least one function definition is required"
+        )
 
-    first_function = functions[0]
-    args = {
+    selected_function = functions[0]
+    placeholder_args = {
         name: _placeholder_value(spec.type)
-        for name, spec in first_function.parameters.items()
+        for name, spec in selected_function.parameters.items()
     }
 
     return [
         FunctionCallResult(
             prompt=prompt.prompt,
-            fn_name=first_function.name,
-            args=args,
+            fn_name=selected_function.name,
+            args=placeholder_args.copy(),
         )
         for prompt in prompts
     ]

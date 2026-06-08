@@ -1,5 +1,5 @@
 
------- Poceso de generacion del LLM: ------------
+========= Poceso de generacion del LLM: =========
 Prompt -> Tokenization -> Input IDs -> LLM -> Logits -> Next Token Selection
 
 
@@ -13,8 +13,120 @@ En este proyecto debe asegurar un JSON sintacticamente valido e imponer
 
 
 
-1- LLM:
-LLM
-    Un LLM es un modelo que predice el siguiente token.
-    No “piensa” como una persona ni ejecuta código.
+========= CONCEPTOS A DOMINAR ===========
+
+1. LLM
+    Un LLM es un modelo que predice el siguiente token. No “piensa” como una persona ni ejecuta código.
     Recibe texto convertido en números y devuelve puntuaciones sobre cuál podría ser el siguiente token.
+
+2. Tokenización
+    El texto se divide en tokens. Un token puede ser una palabra, parte de una palabra, un espacio o un símbolo.
+
+    Ejemplo simplificado:
+
+    "What is the sum of 2 and 3?"
+    puede convertirse en algo parecido a:
+    ["What", " is", " the", " sum", " of", " 2", " and", " 3", "?"]
+    Luego cada token se transforma en un número: los input_ids.
+
+3. Logits
+    El modelo no devuelve directamente texto.
+    Devuelve una lista de puntuaciones, una por cada token posible del vocabulario.
+    Esas puntuaciones se llaman logits.
+
+    En el SDK del proyecto, esto se hace con llm_sdk/llm_sdk/__init__.py:90:
+    get_logits_from_input_ids(input_ids)
+    Ese método nos dice: “después de estos tokens, qué tokens parecen más probables”.
+
+4. Decodificación
+    Decodificar es elegir el siguiente token usando los logits.
+    Normalmente se elige el token con mayor puntuación o se hace sampling.
+
+    Proceso mental:
+    prompt -> tokens -> ids -> modelo -> logits -> elegir siguiente token
+
+    Y se repite muchas veces.
+
+5. Function Calling
+    Function calling significa transformar lenguaje natural en una estructura ejecutable por un programa.
+
+
+
+
+==== HITOS ========
+Hito 1: Estructura base del proyecto
+Crear pyproject.toml, src/__main__.py, modelos Pydantic, lectura de JSON, escritura de output y Makefile.
+
+Hito 2: Validación de entradas
+Comprobar que los archivos existen, que son JSON válidos y que las funciones tienen nombres, parámetros y tipos correctos.
+
+Hito 3: Primer generador simple
+Conectar el SDK Small_LLM_Model, codificar prompts y obtener logits. Aquí aprenderás en la práctica qué devuelve el modelo.
+
+Hito 4: Selector de función con LLM
+Hacer que el modelo elija entre funciones disponibles. Sin heurísticas duras basadas en los ejemplos.
+
+Hito 5: Extracción de argumentos
+Generar los argumentos correctos según el schema de la función.
+
+Hito 6: Decodificación restringida
+Construir el mecanismo que fuerza una salida JSON válida y compatible con el schema.
+
+Hito 7: Tests y casos límite
+Probar strings vacíos, números grandes, prompts ambiguos, JSON inválido y archivos ausentes.
+
+Hito 8: README de defensa
+Documentar algoritmo, decisiones, rendimiento, retos y estrategia de pruebas.
+
+
+
+======== ARQUITECTURA ==========
+src/
+├── domain/
+│   ├── __init__.py
+│   ├── models.py
+│   └── exceptions.py
+│
+├── application/
+│   ├── __init__.py
+│   ├── ports.py
+│   ├── process_prompts.py
+│   └── constrained_decoder.py
+│
+├── infrastructure/
+│   ├── __init__.py
+│   ├── json_files.py
+│   └── llm_adapter.py
+│
+├── interfaces/
+│   ├── __init__.py
+│   └── cli.py
+│
+├── __init__.py
+└── __main__.py
+
+
+
+==== FLUJO =======
+CLI
+↓
+process_prompts
+↓
+constrained_decoder
+↓
+LanguageModel (interfaz)
+↑
+QwenAdapter (infraestructura)
+
+
+PARA ARCHIVOS:
+CLI
+↓
+JSON reader
+↓
+modelos del dominio
+↓
+caso de uso
+↓
+JSON writer
+

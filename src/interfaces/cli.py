@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
 
-from src.io_utils import (
+from src.application import process_prompts
+from src.domain import CallMeMaybeError
+from src.infrastructure import (
     DEFAULT_FUNCTIONS_PATH,
     DEFAULT_OUTPUT_PATH,
     DEFAULT_TESTS_PATH,
@@ -13,10 +16,9 @@ from src.io_utils import (
     load_prompt_cases,
     write_results,
 )
-from src.pipeline import build_initial_results
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         prog="python -m src",
@@ -40,19 +42,19 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_FUNCTIONS_PATH,
         help="Path to the function definitions JSON file.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def main() -> int:
-    """Run the project CLI."""
-    args: argparse.Namespace = parse_args()
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the project CLI and return its process exit code."""
+    args: argparse.Namespace = parse_args(argv)
 
     try:
         prompts = load_prompt_cases(args.input)
         functions = load_function_definitions(args.functions)
-        results = build_initial_results(prompts, functions)
+        results = process_prompts(prompts, functions)
         write_results(args.output, results)
-    except ValueError as exc:
+    except CallMeMaybeError as exc:
         print(f"Error: {exc}")
         return 1
 
