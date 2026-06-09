@@ -8,7 +8,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
+    field_validator
 )
 
 
@@ -18,7 +18,7 @@ JsonType = Literal[
     "integer",
     "boolean",
     "object",
-    "array",
+    "array"
 ]
 
 

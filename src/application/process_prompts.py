@@ -8,7 +8,7 @@ from src.domain import (
     FunctionCallResult,
     FunctionDefinition,
     FunctionDefinitionError,
-    PromptCase,
+    PromptCase
 )
 
 
@@ -45,7 +45,7 @@ def process_prompts(
         FunctionCallResult(
             prompt=prompt.prompt,
             fn_name=selected_function.name,
-            args=placeholder_args.copy(),
+            args=placeholder_args.copy()
         )
         for prompt in prompts
     ]

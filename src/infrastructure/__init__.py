@@ -7,7 +7,7 @@ from src.infrastructure.json_files import (
     DEFAULT_TESTS_PATH,
     load_function_definitions,
     load_prompt_cases,
-    write_results,
+    write_results
 )
 
 
@@ -18,5 +18,5 @@ __all__ = [
     "DEFAULT_TESTS_PATH",
     "load_function_definitions",
     "load_prompt_cases",
-    "write_results",
+    "write_results"
 ]

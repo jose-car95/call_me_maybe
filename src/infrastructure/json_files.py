@@ -15,7 +15,7 @@ from src.domain import (
     InputFileError,
     InputValidationError,
     OutputFileError,
-    PromptCase,
+    PromptCase
 )
 
 
@@ -48,7 +48,7 @@ def _validate_array(
     raw_data: Any,
     path: Path,
     model: type[ModelT],
-    item_name: str,
+    item_name: str
 ) -> list[ModelT]:
     """Validate a JSON array against one Pydantic model."""
     if not isinstance(raw_data, list):
@@ -72,7 +72,7 @@ def load_prompt_cases(path: Path) -> list[PromptCase]:
         _load_json(path),
         path,
         PromptCase,
-        "prompt",
+        "prompt"
     )
 
 
@@ -82,7 +82,7 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
         _load_json(path),
         path,
         FunctionDefinition,
-        "function",
+        "function"
     )
     if not functions:
         raise FunctionDefinitionError(

@@ -5,7 +5,7 @@ from src.domain.exceptions import (
     FunctionDefinitionError,
     InputFileError,
     InputValidationError,
-    OutputFileError,
+    OutputFileError
 )
 from src.domain.models import (
     FunctionCallResult,
@@ -13,7 +13,7 @@ from src.domain.models import (
     JsonType,
     ParameterSpec,
     PromptCase,
-    ReturnSpec,
+    ReturnSpec
 )
 
 
@@ -28,5 +28,5 @@ __all__ = [
     "OutputFileError",
     "ParameterSpec",
     "PromptCase",
-    "ReturnSpec",
+    "ReturnSpec"
 ]

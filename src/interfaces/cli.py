@@ -14,7 +14,7 @@ from src.infrastructure import (
     DEFAULT_TESTS_PATH,
     load_function_definitions,
     load_prompt_cases,
-    write_results,
+    write_results
 )
 
 
@@ -22,25 +22,25 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
         prog="python -m src",
-        description="Translate natural-language prompts into function calls.",
+        description="Translate natural-language prompts into function calls."
     )
     parser.add_argument(
         "--input",
         type=Path,
         default=DEFAULT_TESTS_PATH,
-        help="Path to the prompt test JSON file.",
+        help="Path to the prompt test JSON file."
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=DEFAULT_OUTPUT_PATH,
-        help="Path where the result JSON file will be written.",
+        help="Path where the result JSON file will be written."
     )
     parser.add_argument(
         "--functions",
         type=Path,
         default=DEFAULT_FUNCTIONS_PATH,
-        help="Path to the function definitions JSON file.",
+        help="Path to the function definitions JSON file."
     )
     return parser.parse_args(argv)
 
