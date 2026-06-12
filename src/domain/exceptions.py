@@ -19,3 +19,7 @@ class OutputFileError(CallMeMaybeError):
 
 class FunctionDefinitionError(CallMeMaybeError):
     """Raised when available function definitions are not usable."""
+
+
+class ModelInferenceError(CallMeMaybeError):
+    """Raised when the language model cannot produce a token."""

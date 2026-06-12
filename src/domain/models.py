@@ -92,3 +92,14 @@ class FunctionCallResult(BaseModel):
     prompt: str
     fn_name: str
     args: dict[str, Any]
+
+
+class NextTokenPrediction(BaseModel):
+    """Result of predicting one token."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    input_ids: list[int]
+    logits_count: int
+    token_id: int
+    token_text: str

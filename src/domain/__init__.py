@@ -5,7 +5,8 @@ from src.domain.exceptions import (
     FunctionDefinitionError,
     InputFileError,
     InputValidationError,
-    OutputFileError
+    OutputFileError,
+    ModelInferenceError
 )
 from src.domain.models import (
     FunctionCallResult,
@@ -13,20 +14,23 @@ from src.domain.models import (
     JsonType,
     ParameterSpec,
     PromptCase,
-    ReturnSpec
+    ReturnSpec,
+    NextTokenPrediction
 )
 
 
 __all__ = [
     "CallMeMaybeError",
-    "FunctionCallResult",
-    "FunctionDefinition",
     "FunctionDefinitionError",
     "InputFileError",
     "InputValidationError",
-    "JsonType",
     "OutputFileError",
+    "ModelInferenceError",
+    "FunctionCallResult",
+    "FunctionDefinition",
+    "JsonType",
     "ParameterSpec",
     "PromptCase",
-    "ReturnSpec"
+    "ReturnSpec",
+    "NextTokenPrediction"
 ]
