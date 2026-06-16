@@ -37,13 +37,14 @@ class QwenAdapter:
 
     def __init__(
         self,
-        model: SDKLanguageModel | None = None
+        model: SDKLanguageModel | None = None,
+        device: str = "cpu"
     ) -> None:
         """Initialize the adapter with a provided or default model."""
         if model is None:
             model = cast(
                 SDKLanguageModel,
-                Small_LLM_Model()
+                Small_LLM_Model(device=device)
             )
 
         self._model = model

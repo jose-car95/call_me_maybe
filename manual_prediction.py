@@ -1,35 +1,37 @@
-"""Inspect how Qwen tokenizes the available function names."""
+"""Run manual constrained function selection with Qwen."""
 
-from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
+from pathlib import Path
 
-from src.infrastructure import QwenAdapter
-
-
-FUNCTION_NAMES = [
-    "fn_add_numbers",
-    "fn_greet",
-    "fn_reverse_string",
-    "fn_get_square_root",
-    "fn_substitute_string_with_regex"
-]
+from src.application import select_function_name
+from src.infrastructure import (
+    QwenAdapter,
+    load_function_definitions
+)
 
 
 def main() -> None:
-    """Print the tokenization of every function name."""
-    sdk_model = Small_LLM_Model(device="cpu")
-    model = QwenAdapter(sdk_model)
+    """Load Qwen on CPU and select a function for sample prompt."""
+    model = QwenAdapter()
+    functions = load_function_definitions(
+        Path("data/input/functions_definition.json")
+    )
 
-    for function_name in FUNCTION_NAMES:
-        token_ids = model.encode(function_name)
+    prompts = [
+        "What is the sum of 2 and 3?",
+        "Greet john",
+        "Reverse the string 'hello'",
+        "What is the square root of 16?"
+    ]
 
-        print(f"Function: {function_name}")
-        print(f"Token IDs: {token_ids}")
-        print("Tokens:")
+    for prompt in prompts:
+        selected_name = select_function_name(
+            model,
+            prompt,
+            functions
+        )
 
-        for token_id in token_ids:
-            token_text = model.decode([token_id])
-            print(f"  {token_id}: {token_text!r}")
-
+        print(f"Prompt: {prompt}")
+        print(f"Selected function: {selected_name}")
         print()
 
 
