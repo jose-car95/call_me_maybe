@@ -8,6 +8,33 @@ import pytest
 from src.interfaces import main
 
 
+class SingleFunctionModel:
+    """Language model that selects the first available function."""
+
+    def encode(self, text: str) -> list[int]:
+        """Encode prompts and function names predictably."""
+        tokens = {
+            "fn_add_numbers": [1],
+            "fn_greet": [2],
+            "fn_reverse_string": [3],
+            "fn_get_square_root": [4],
+            "fn_substitute_string_with_regex": [5]
+        }
+
+        if text in tokens:
+            return tokens[text]
+
+        return [10, 20]
+
+    def decode(self, token_ids: list[int]) -> str:
+        """Decode is not needed by the CLI test."""
+        return ""
+
+    def get_logits(self, input_ids: list[int]) -> list[float]:
+        """Select token 1."""
+        return [0.0, 1.0, 0.5, 0.4, 0.3, 0.2]
+
+
 def test_cli_returns_zero_and_writes_output(
     tmp_path: Path,
 ) -> None:
@@ -21,8 +48,9 @@ def test_cli_returns_zero_and_writes_output(
             "--functions",
             "data/input/functions_definition.json",
             "--output",
-            str(output_path),
-        ]
+            str(output_path)
+        ],
+        SingleFunctionModel()
     )
 
     assert exit_code == 0
@@ -36,7 +64,10 @@ def test_cli_returns_one_for_missing_input(
     """An expected input error becomes exit code one."""
     missing_path = tmp_path / "missing.json"
 
-    exit_code = main(["--input", str(missing_path)])
+    exit_code = main(
+        ["--input", str(missing_path)],
+        SingleFunctionModel()
+    )
     captured = capsys.readouterr()
 
     assert exit_code == 1

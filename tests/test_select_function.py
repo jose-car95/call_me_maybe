@@ -4,9 +4,11 @@ import pytest
 
 from src.application import (
     build_function_selection_prompt,
-    tokenize_function_names,
     find_allowed_next_tokens,
-    select_best_allowed_token
+    find_completed_function_name,
+    select_best_allowed_token,
+    select_function_name,
+    tokenize_function_names
 )
 from src.domain import FunctionDefinition, ReturnSpec, ModelInferenceError
 
@@ -85,6 +87,32 @@ class FakeLanguageModel:
     def get_logits(self, input_ids: list[int]) -> list[float]:
         """Logits are not needed by this test."""
         return []
+
+
+class GuidedLanguageModel:
+    """Language model that selects fn_greet through constrained decoding."""
+
+    def encode(self, text: str) -> list[int]:
+        """Encode prompts and function names predictably."""
+        tokens = {
+            "fn_add": [1, 2],
+            "fn_greet": [1, 3]
+        }
+
+        if text in tokens:
+            return tokens[text]
+
+        return [10, 20]
+
+    def decode(self, token_ids: list[int]) -> str:
+        """Decode is not needed by function selection."""
+        return ""
+
+    def get_logits(self, input_ids: list[int]) -> list[float]:
+        """Prefer fn_greet when both functions are possible."""
+        logits = [0.0, 0.0, 0.1, 0.9]
+
+        return logits
 
 
 def test_tokenizes_every_function_name() -> None:
@@ -203,3 +231,49 @@ def test_rejects_token_outside_logits() -> None:
             [0.1, 0.2],
             {2}
         )
+
+
+def test_finds_completed_function_name() -> None:
+    """A full token sequence maps back to its function name."""
+    tokenized = {
+        "fn_add": [1, 2],
+        "fn_greet": [1, 3]
+    }
+
+    completed_name = find_completed_function_name(
+        tokenized,
+        [1, 3]
+    )
+
+    assert completed_name == "fn_greet"
+
+
+def test_returns_none_for_incomplete_function_name() -> None:
+    """A prefix is not yet a completed function name."""
+    tokenized = {
+        "fn_add": [1, 2],
+        "fn_greet": [1, 3]
+    }
+
+    completed_name = find_completed_function_name(
+        tokenized,
+        [1]
+    )
+
+    assert completed_name is None
+
+
+def test_selects_function_name_with_constrained_decoding() -> None:
+    """Function selection generates the best valid function name."""
+    functions = [
+        create_function("fn_add", "Add values."),
+        create_function("fn_greet", "Greet a person.")
+    ]
+
+    selected_name = select_function_name(
+        GuidedLanguageModel(),
+        "Greet john",
+        functions
+    )
+
+    assert selected_name == "fn_greet"

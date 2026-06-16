@@ -82,3 +82,50 @@ def select_best_allowed_token(
         allowed_tokens,
         key=lambda token_id: logits[token_id]
     )
+
+
+def find_completed_function_name(
+    tokenized_functions: dict[str, list[int]],
+    generated_tokens: list[int]
+) -> str | None:
+    """Return the function name if the generated tokens match one."""
+    for function_name, function_tokens in tokenized_functions.items():
+        if function_tokens == generated_tokens:
+            return function_name
+
+    return None
+
+
+def select_function_name(
+    model: LanguageModel,
+    user_prompt: str,
+    functions: list[FunctionDefinition]
+) -> str:
+    """Select the best matching function name with constrained decoding."""
+    selection_prompt = build_function_selection_prompt(
+        user_prompt,
+        functions
+    )
+    prompt_tokens = model.encode(selection_prompt)
+    tokenized_functions = tokenize_function_names(model, functions)
+    generated_tokens: list[int] = []
+
+    while True:
+        completed_name = find_completed_function_name(
+            tokenized_functions,
+            generated_tokens
+        )
+
+        if completed_name is not None:
+            return completed_name
+
+        allowed_tokens = find_allowed_next_tokens(
+            tokenized_functions,
+            generated_tokens
+        )
+        logits = model.get_logits(prompt_tokens + generated_tokens)
+        selected_token = select_best_allowed_token(
+            logits,
+            allowed_tokens
+        )
+        generated_tokens.append(selected_token)

@@ -130,3 +130,42 @@ caso de uso
 ↓
 JSON writer
 
+
+
+Apuntes:
+¿Qué son los logits?
+Son las puntuaciones que el modelo asigna a los posibles tokens siguientes antes de elegir uno.
+
+¿Qué es un token?
+Una unidad de texto del vocabulario del modelo.
+
+¿Qué es un input_id?
+El identificador numérico asociado a un token.
+
+¿Qué hace get_logits_from_input_ids()?
+Ejecuta el modelo sobre una secuencia de tokens y devuelve las puntuaciones(logits) para los posibles siguientes tokens.
+
+¿Qué es la Decodificación restringida?
+Un mecanismo que modifica los logits para impedir que el modelo genere tokens que romperían en esquema o el JSON esperado.
+"De todas las opciones que el modelo quiere generar, yo elimino las que no me interesan."
+
+"Un LLM es una maquina que recibe inputs_ids y devuelve logits para el siguiente token."
+
+
+FUNCIONAMIENTO DEL LLM:
+----------------------------------
+Texto
+↓
+Tokens
+↓
+Input IDs
+↓
+LLM
+↓
+Logits
+↓
+Mi código elimina opciones inválidas
+↓
+Se elige un token válido
+↓
+Repetir

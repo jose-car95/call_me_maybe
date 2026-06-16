@@ -4,12 +4,28 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.application.ports import LanguageModel
+from src.application.select_function import select_function_name
 from src.domain import (
     FunctionCallResult,
     FunctionDefinition,
     FunctionDefinitionError,
     PromptCase
 )
+
+
+def _find_function_by_name(
+    functions: list[FunctionDefinition],
+    selected_name: str
+) -> FunctionDefinition:
+    """Return the function definition matching the selected name."""
+    for function in functions:
+        if function.name == selected_name:
+            return function
+
+    raise FunctionDefinitionError(
+        f"selected function does not exist: {selected_name}"
+    )
 
 
 def _placeholder_value(type_name: str) -> Any:
@@ -26,26 +42,39 @@ def _placeholder_value(type_name: str) -> Any:
 
 
 def process_prompts(
+    model: LanguageModel,
     prompts: list[PromptCase],
     functions: list[FunctionDefinition],
 ) -> list[FunctionCallResult]:
-    """Build provisional calls using the first available function."""
+    """Build function call results for every prompt."""
     if not functions:
         raise FunctionDefinitionError(
             "at least one function definition is required"
         )
 
-    selected_function = functions[0]
-    placeholder_args = {
-        name: _placeholder_value(spec.type)
-        for name, spec in selected_function.parameters.items()
-    }
+    results: list[FunctionCallResult] = []
 
-    return [
-        FunctionCallResult(
-            prompt=prompt.prompt,
-            fn_name=selected_function.name,
-            args=placeholder_args.copy()
+    for prompt in prompts:
+        selected_name = select_function_name(
+            model,
+            prompt.prompt,
+            functions
         )
-        for prompt in prompts
-    ]
+        selected_function = _find_function_by_name(
+            functions,
+            selected_name
+        )
+        args = {
+            name: _placeholder_value(spec.type)
+            for name, spec in selected_function.parameters.items()
+        }
+
+        results.append(
+            FunctionCallResult(
+                prompt=prompt.prompt,
+                fn_name=selected_function.name,
+                args=args
+            )
+        )
+
+    return results

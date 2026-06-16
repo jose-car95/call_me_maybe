@@ -6,12 +6,13 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from src.application import process_prompts
+from src.application import LanguageModel, process_prompts
 from src.domain import CallMeMaybeError
 from src.infrastructure import (
     DEFAULT_FUNCTIONS_PATH,
     DEFAULT_OUTPUT_PATH,
     DEFAULT_TESTS_PATH,
+    QwenAdapter,
     load_function_definitions,
     load_prompt_cases,
     write_results
@@ -45,14 +46,19 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(
+    argv: Sequence[str] | None = None,
+    model: LanguageModel | None = None
+) -> int:
     """Run the project CLI and return its process exit code."""
     args: argparse.Namespace = parse_args(argv)
 
     try:
         prompts = load_prompt_cases(args.input)
         functions = load_function_definitions(args.functions)
-        results = process_prompts(prompts, functions)
+        if model is None:
+            model = QwenAdapter()
+        results = process_prompts(model, prompts, functions)
         write_results(args.output, results)
     except CallMeMaybeError as exc:
         print(f"Error: {exc}")
