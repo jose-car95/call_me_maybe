@@ -1,7 +1,5 @@
 """Use case for processing prompts into function call results."""
 
-from __future__ import annotations
-
 from typing import Any
 
 from src.application.ports import LanguageModel
@@ -38,13 +36,14 @@ def _placeholder_value(type_name: str) -> Any:
         return []
     if type_name == "object":
         return {}
+
     return ""
 
 
 def process_prompts(
     model: LanguageModel,
     prompts: list[PromptCase],
-    functions: list[FunctionDefinition],
+    functions: list[FunctionDefinition]
 ) -> list[FunctionCallResult]:
     """Build function call results for every prompt."""
     if not functions:
