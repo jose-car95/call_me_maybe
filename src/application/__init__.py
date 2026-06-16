@@ -1,7 +1,8 @@
 """Public application API for function calling."""
 
 from src.application.extract_arguments import (
-    build_argument_extraction_prompt
+    build_argument_extraction_prompt,
+    build_empty_arguments
 )
 from src.application.ports import LanguageModel
 from src.application.predict_next_token import predict_next_token
@@ -19,6 +20,7 @@ from src.application.select_function import (
 __all__ = [
     "LanguageModel",
     "build_argument_extraction_prompt",
+    "build_empty_arguments",
     "build_function_selection_prompt",
     "find_allowed_next_tokens",
     "find_completed_function_name",
