@@ -52,10 +52,16 @@ def test_process_prompts_returns_one_result_per_prompt() -> None:
 
     assert [result.prompt for result in results] == ["First", "Second"]
     assert all(result.fn_name == "fn_example" for result in results)
-    assert all(
-        result.args == {"text": "", "enabled": False}
-        for result in results
-    )
+    assert [result.args for result in results] == [
+        {
+            "text": "First",
+            "enabled": False
+        },
+        {
+            "text": "Second",
+            "enabled": False
+        }
+    ]
 
 
 def test_process_prompts_requires_a_function() -> None:

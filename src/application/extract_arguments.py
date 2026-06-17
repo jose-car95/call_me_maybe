@@ -40,6 +40,15 @@ class ArgumentPatternMatcher:
             if group is not None
         )
 
+    def extract_last_word(self, text: str) -> str:
+        """Extract the last word from text."""
+        words = text.strip().split()
+
+        if not words:
+            return ""
+
+        return words[-1].strip(".,!?;:")
+
 
 def build_argument_extraction_prompt(
     user_prompt: str,
@@ -109,7 +118,12 @@ def _extract_argument_value(
         return value, number_index + 1
 
     if type_name == "string":
-        return matcher.extract_first_quoted_text(user_prompt), number_index
+        quoted_text = matcher.extract_first_quoted_text(user_prompt)
+
+        if quoted_text:
+            return quoted_text, number_index
+
+        return matcher.extract_last_word(user_prompt), number_index
 
     return _empty_value_for_type(type_name), number_index
 

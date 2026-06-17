@@ -109,7 +109,6 @@ def test_extract_arguments_keeps_empty_values_when_text_is_missing() -> None:
     """Missing values keep schema-compatible empty values."""
     function = create_function_with_parameters(
         {
-            "name": "string",
             "age": "integer"
         }
     )
@@ -120,7 +119,6 @@ def test_extract_arguments_keeps_empty_values_when_text_is_missing() -> None:
     )
 
     assert args == {
-        "name": "",
         "age": 0
     }
 
@@ -160,4 +158,22 @@ def test_extract_arguments_extracts_quoted_string() -> None:
 
     assert args == {
         "text": "hello"
+    }
+
+
+def test_extract_arguments_extracts_last_word_for_unquoted_string() -> None:
+    """String parameters can be filled from the last prompt word."""
+    function = create_function_with_parameters(
+        {
+            "name": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Greet john",
+        function
+    )
+
+    assert args == {
+        "name": "john"
     }
