@@ -177,3 +177,27 @@ def test_extract_arguments_extracts_last_word_for_unquoted_string() -> None:
     assert args == {
         "name": "john"
     }
+
+
+def test_extract_arguments_extracts_quoted_strings_by_parameter_order(
+) -> None:
+    """String parameters are filled from quoted text in order."""
+    function = create_function_with_parameters(
+        {
+            "regex": "string",
+            "replacement": "string",
+            "source_string": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Substitute the word 'cat' with 'dog' in "
+        "'The cat sat on the mat with another cat'",
+        function
+    )
+
+    assert args == {
+        "regex": "cat",
+        "replacement": "dog",
+        "source_string": "The cat sat on the mat with another cat"
+    }

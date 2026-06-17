@@ -24,21 +24,17 @@ class ArgumentPatternMatcher:
             )
         ]
 
-    def extract_first_quoted_text(self, text: str) -> str:
-        """Extract the first quoted text from text."""
-        match = re.search(
+    def extract_quoted_texts(self, text: str) -> list[str]:
+        """Extract all quoted texts from text."""
+        matches = re.findall(
             self.quoted_text_pattern,
             text
         )
 
-        if match is None:
-            return ""
-
-        return next(
-            group
-            for group in match.groups()
-            if group is not None
-        )
+        return [
+            single_quoted or double_quoted
+            for single_quoted, double_quoted in matches
+        ]
 
     def extract_last_word(self, text: str) -> str:
         """Extract the last word from text."""
@@ -103,29 +99,41 @@ def _extract_argument_value(
     type_name: str,
     numbers: list[float],
     number_index: int,
+    quoted_texts: list[str],
+    quoted_text_index: int,
     matcher: ArgumentPatternMatcher,
     user_prompt: str
-) -> tuple[Any, int]:
-    """Extract one argument value and return the updated number index."""
+) -> tuple[Any, int, int]:
+    """Extract one argument value and return the updated indexes."""
     if type_name in {"number", "integer"}:
         if number_index >= len(numbers):
-            return _empty_value_for_type(type_name), number_index
+            return (
+                _empty_value_for_type(type_name),
+                number_index,
+                quoted_text_index
+            )
 
         value = numbers[number_index]
         if type_name == "integer":
             value = int(value)
 
-        return value, number_index + 1
+        return value, number_index + 1, quoted_text_index
 
     if type_name == "string":
-        quoted_text = matcher.extract_first_quoted_text(user_prompt)
+        if quoted_text_index < len(quoted_texts):
+            return (
+                quoted_texts[quoted_text_index],
+                number_index,
+                quoted_text_index + 1
+            )
 
-        if quoted_text:
-            return quoted_text, number_index
+        return (
+            matcher.extract_last_word(user_prompt),
+            number_index,
+            quoted_text_index
+        )
 
-        return matcher.extract_last_word(user_prompt), number_index
-
-    return _empty_value_for_type(type_name), number_index
+    return _empty_value_for_type(type_name), number_index, quoted_text_index
 
 
 def extract_arguments(
@@ -140,14 +148,18 @@ def extract_arguments(
 
     matcher = ArgumentPatternMatcher()
     numbers = matcher.extract_numbers(user_prompt)
+    quoted_texts = matcher.extract_quoted_texts(user_prompt)
     number_index: int = 0
+    quoted_text_index = 0
     arguments: dict[str, Any] = {}
 
     for name, spec in function.parameters.items():
-        value, number_index = _extract_argument_value(
+        value, number_index, quoted_text_index = _extract_argument_value(
             spec.type,
             numbers,
             number_index,
+            quoted_texts,
+            quoted_text_index,
             matcher,
             user_prompt
         )
