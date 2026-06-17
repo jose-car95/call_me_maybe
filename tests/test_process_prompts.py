@@ -6,7 +6,7 @@ from src.application import process_prompts
 from src.domain import (
     FunctionDefinition,
     FunctionDefinitionError,
-    PromptCase,
+    PromptCase
 )
 
 
@@ -38,9 +38,9 @@ def test_process_prompts_returns_one_result_per_prompt() -> None:
             "description": "Example function.",
             "parameters": {
                 "text": {"type": "string"},
-                "enabled": {"type": "boolean"},
+                "enabled": {"type": "boolean"}
             },
-            "returns": {"type": "string"},
+            "returns": {"type": "string"}
         }
     )
 
@@ -66,3 +66,35 @@ def test_process_prompts_requires_a_function() -> None:
             [PromptCase(prompt="Hello")],
             []
         )
+
+
+def test_process_prompts_extracts_arguments_for_selected_function() -> None:
+    """Prompt processing extracts arguments for the selected function."""
+    prompts = [
+        PromptCase(prompt="Add 2 and 3")
+    ]
+    function = FunctionDefinition.model_validate(
+        {
+            "name": "fn_example",
+            "description": "Add two numbers.",
+            "parameters": {
+                "a": {"type": "number"},
+                "b": {"type": "number"}
+            },
+            "returns": {"type": "number"}
+        }
+    )
+
+    results = process_prompts(
+        SingleFunctionModel(),
+        prompts,
+        [function]
+    )
+
+    assert len(results) == 1
+    assert results[0].prompt == "Add 2 and 3"
+    assert results[0].fn_name == "fn_example"
+    assert results[0].args == {
+        "a": 2.0,
+        "b": 3.0
+    }

@@ -90,6 +90,30 @@ def _empty_value_for_type(type_name: str) -> Any:
     return ""
 
 
+def _extract_argument_value(
+    type_name: str,
+    numbers: list[float],
+    number_index: int,
+    matcher: ArgumentPatternMatcher,
+    user_prompt: str
+) -> tuple[Any, int]:
+    """Extract one argument value and return the updated number index."""
+    if type_name in {"number", "integer"}:
+        if number_index >= len(numbers):
+            return _empty_value_for_type(type_name), number_index
+
+        value = numbers[number_index]
+        if type_name == "integer":
+            value = int(value)
+
+        return value, number_index + 1
+
+    if type_name == "string":
+        return matcher.extract_first_quoted_text(user_prompt), number_index
+
+    return _empty_value_for_type(type_name), number_index
+
+
 def extract_arguments(
     user_prompt: str,
     function: FunctionDefinition
@@ -100,4 +124,19 @@ def extract_arguments(
         function
     )
 
-    return build_empty_arguments(function)
+    matcher = ArgumentPatternMatcher()
+    numbers = matcher.extract_numbers(user_prompt)
+    number_index: int = 0
+    arguments: dict[str, Any] = {}
+
+    for name, spec in function.parameters.items():
+        value, number_index = _extract_argument_value(
+            spec.type,
+            numbers,
+            number_index,
+            matcher,
+            user_prompt
+        )
+        arguments[name] = value
+
+    return arguments

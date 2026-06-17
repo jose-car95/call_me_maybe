@@ -105,8 +105,8 @@ def test_builds_empty_boolean_array_and_object_arguments() -> None:
     }
 
 
-def test_extract_arguments_returns_schema_compatible_empty_arguments() -> None:
-    """Argument extraction returns schema-compatible arguments."""
+def test_extract_arguments_keeps_empty_values_when_text_is_missing() -> None:
+    """Missing values keep schema-compatible empty values."""
     function = create_function_with_parameters(
         {
             "name": "string",
@@ -115,11 +115,49 @@ def test_extract_arguments_returns_schema_compatible_empty_arguments() -> None:
     )
 
     args = extract_arguments(
-        "Greet John, he is 42",
+        "Greet John",
         function
     )
 
     assert args == {
         "name": "",
         "age": 0
+    }
+
+
+def test_extract_arguments_extracts_numbers_by_parameter_order() -> None:
+    """Number parameters are filled from prompt numbers in order."""
+    function = create_function_with_parameters(
+        {
+            "a": "number",
+            "b": "number"
+        }
+    )
+
+    args = extract_arguments(
+        "Add 2 and 3",
+        function
+    )
+
+    assert args == {
+        "a": 2.0,
+        "b": 3.0
+    }
+
+
+def test_extract_arguments_extracts_quoted_string() -> None:
+    """String parameters are filled from quoted text."""
+    function = create_function_with_parameters(
+        {
+            "text": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Reverse the string 'hello'",
+        function
+    )
+
+    assert args == {
+        "text": "hello"
     }
