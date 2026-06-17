@@ -1,6 +1,6 @@
 """Use case for processing prompts into function call results."""
 
-from src.application.extract_arguments import build_empty_arguments
+from src.application.extract_arguments import extract_arguments
 from src.application.ports import LanguageModel
 from src.application.select_function import select_function_name
 from src.domain import (
@@ -48,7 +48,10 @@ def process_prompts(
             functions,
             selected_name
         )
-        args = build_empty_arguments(selected_function)
+        args = extract_arguments(
+            prompt.prompt,
+            selected_function
+        )
 
         results.append(
             FunctionCallResult(

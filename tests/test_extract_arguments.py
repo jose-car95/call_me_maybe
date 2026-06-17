@@ -2,7 +2,8 @@
 
 from src.application import (
     build_argument_extraction_prompt,
-    build_empty_arguments
+    build_empty_arguments,
+    extract_arguments
 )
 from src.domain import FunctionDefinition, JsonType, ParameterSpec, ReturnSpec
 
@@ -101,4 +102,24 @@ def test_builds_empty_boolean_array_and_object_arguments() -> None:
         "enabled": False,
         "items": [],
         "metadata": {}
+    }
+
+
+def test_extract_arguments_returns_schema_compatible_empty_arguments() -> None:
+    """Argument extraction returns schema-compatible arguments."""
+    function = create_function_with_parameters(
+        {
+            "name": "string",
+            "age": "integer"
+        }
+    )
+
+    args = extract_arguments(
+        "Greet John, he is 42",
+        function
+    )
+
+    assert args == {
+        "name": "",
+        "age": 0
     }
