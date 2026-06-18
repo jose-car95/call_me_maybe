@@ -1,37 +1,35 @@
-"""Run manual constrained function selection with Qwen."""
+"""Run manual function call generation with Qwen."""
 
 from pathlib import Path
 
-from src.application import select_function_name
+from src.application import process_prompts
 from src.infrastructure import (
     QwenAdapter,
-    load_function_definitions
+    load_function_definitions,
+    load_prompt_cases
 )
 
 
 def main() -> None:
-    """Load Qwen on CPU and select a function for sample prompt."""
+    """Load Qwen on CPU and process real input prompts."""
     model = QwenAdapter()
     functions = load_function_definitions(
         Path("data/input/functions_definition.json")
     )
+    prompts = load_prompt_cases(
+        Path("data/input/function_calling_tests.json")
+    )
 
-    prompts = [
-        "What is the sum of 2 and 3?",
-        "Greet john",
-        "Reverse the string 'hello'",
-        "What is the square root of 16?"
-    ]
+    results = process_prompts(
+        model,
+        prompts,
+        functions
+    )
 
-    for prompt in prompts:
-        selected_name = select_function_name(
-            model,
-            prompt,
-            functions
-        )
-
-        print(f"Prompt: {prompt}")
-        print(f"Selected function: {selected_name}")
+    for result in results:
+        print(f"Prompt: {result.prompt}")
+        print(f"Selected function: {result.fn_name}")
+        print(f"Arguments: {result.args}")
         print()
 
 

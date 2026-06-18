@@ -201,3 +201,51 @@ def test_extract_arguments_extracts_quoted_strings_by_parameter_order(
         "replacement": "dog",
         "source_string": "The cat sat on the mat with another cat"
     }
+
+
+def test_extract_arguments_extracts_substitution_word_arguments() -> None:
+    """
+    Regex substitution arguments are extracted from word replacement prompts.
+    """
+    function = create_function_with_parameters(
+        {
+            "source_string": "string",
+            "regex": "string",
+            "replacement": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Substitute the word 'cat' with 'dog' in "
+        "'The cat sat on the mat with another cat'",
+        function
+    )
+
+    assert args == {
+        "source_string": "The cat sat on the mat with another cat",
+        "regex": "cat",
+        "replacement": "dog"
+    }
+
+
+def test_extract_arguments_extracts_substitution_number_arguments() -> None:
+    """Number replacement prompts become a numeric regex."""
+    function = create_function_with_parameters(
+        {
+            "source_string": "string",
+            "regex": "string",
+            "replacement": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Replace all numbers in \"Hello 34 I'm 233 years old\" "
+        "with NUMBERS",
+        function
+    )
+
+    assert args == {
+        "source_string": "Hello 34 I'm 233 years old",
+        "regex": r"\d+",
+        "replacement": "NUMBERS"
+    }

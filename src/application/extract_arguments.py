@@ -136,6 +136,58 @@ def _extract_argument_value(
     return _empty_value_for_type(type_name), number_index, quoted_text_index
 
 
+def _is_regex_substitution(function: FunctionDefinition) -> bool:
+    """Return whether a function has the regex substitution schema."""
+    required_parameters = {
+        "source_string",
+        "regex",
+        "replacement"
+    }
+
+    return required_parameters.issubset(function.parameters)
+
+
+def _extract_replacement_after_with(user_prompt: str) -> str:
+    """Extract the replacement text after the word 'with'."""
+    marker = " with "
+    lowered_prompt = user_prompt.lower()
+    marker_index = lowered_prompt.rfind(marker)
+
+    if marker_index == -1:
+        return ""
+
+    return user_prompt[marker_index + len(marker):].strip(" .,!?:;")
+
+
+def _extract_regex_substitution_arguments(
+    user_prompt: str,
+    matcher: ArgumentPatternMatcher
+) -> dict[str, Any]:
+    """Extract arguments for source, regex and replacement schema."""
+    quoted_texts = matcher.extract_quoted_texts(user_prompt)
+    lowered_prompt = user_prompt.lower()
+
+    if "numbers" in lowered_prompt and quoted_texts:
+        return {
+            "source_string": quoted_texts[0],
+            "regex": r"\d+",
+            "replacement": _extract_replacement_after_with(user_prompt)
+        }
+
+    if len(quoted_texts) >= 3:
+        return {
+            "source_string": quoted_texts[2],
+            "regex": quoted_texts[0],
+            "replacement": quoted_texts[1]
+        }
+
+    return {
+        "source_string": quoted_texts[0] if quoted_texts else "",
+        "regex": "",
+        "replacement": _extract_replacement_after_with(user_prompt)
+    }
+
+
 def extract_arguments(
     user_prompt: str,
     function: FunctionDefinition
@@ -147,6 +199,13 @@ def extract_arguments(
     )
 
     matcher = ArgumentPatternMatcher()
+
+    if _is_regex_substitution(function):
+        return _extract_regex_substitution_arguments(
+            user_prompt,
+            matcher
+        )
+
     numbers = matcher.extract_numbers(user_prompt)
     quoted_texts = matcher.extract_quoted_texts(user_prompt)
     number_index: int = 0
