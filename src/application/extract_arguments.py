@@ -174,6 +174,13 @@ def _extract_regex_substitution_arguments(
             "replacement": _extract_replacement_after_with(user_prompt)
         }
 
+    if "vowels" in lowered_prompt and quoted_texts:
+        return {
+            "source_string": quoted_texts[0],
+            "regex": r"[aeiouAEIOU]",
+            "replacement": _extract_replacement_after_with(user_prompt)
+        }
+
     if len(quoted_texts) >= 3:
         return {
             "source_string": quoted_texts[2],

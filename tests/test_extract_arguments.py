@@ -249,3 +249,25 @@ def test_extract_arguments_extracts_substitution_number_arguments() -> None:
         "regex": r"\d+",
         "replacement": "NUMBERS"
     }
+
+
+def test_extract_arguments_extracts_substitution_vowel_arguments() -> None:
+    """Vowel replacement prompts become a vowel regex."""
+    function = create_function_with_parameters(
+        {
+            "source_string": "string",
+            "regex": "string",
+            "replacement": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Replace all vowels in 'Programming is fun' with asterisks",
+        function
+    )
+
+    assert args == {
+        "source_string": "Programming is fun",
+        "regex": r"[aeiouAEIOU]",
+        "replacement": "asterisks"
+    }
