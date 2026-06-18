@@ -1,11 +1,19 @@
 """Tests for constrained argument decoding helpers."""
 
 from src.application.argument_decoder import (
+    build_constrained_argument_json,
+    build_constrained_argument_object,
+    build_validated_constrained_argument_object,
     find_next_literal_token,
     tokenize_generation_step_literals,
-    tokenize_literal_step
+    tokenize_literal_step,
+    tokenize_value_step,
+    validate_argument_object
 )
-from src.application.argument_schema import ArgumentGenerationStep
+from src.application.argument_schema import (
+    ArgumentGenerationStep,
+    ArgumentSchema
+)
 from src.domain import ModelInferenceError
 
 import pytest
@@ -129,3 +137,216 @@ def test_rejects_invalid_literal_prefix() -> None:
             [10, 20, 30],
             [99]
         )
+
+
+def test_tokenizes_value_step() -> None:
+    """Value steps are converted into JSON value tokens."""
+    step = ArgumentGenerationStep(
+        literal="",
+        parameter_name="a",
+        parameter_type="number"
+    )
+
+    tokens = tokenize_value_step(
+        FakeModel(),
+        step,
+        {
+            "a": 2.0
+        }
+    )
+
+    assert tokens == [
+        ord("2"),
+        ord("."),
+        ord("0")
+    ]
+
+
+def test_rejects_literal_step_when_tokenizing_value() -> None:
+    """Literal steps cannot be tokenized as argument values."""
+    step = ArgumentGenerationStep(
+        literal="{",
+        parameter_name=None,
+        parameter_type=None
+    )
+
+    with pytest.raises(ModelInferenceError, match="only value"):
+        tokenize_value_step(
+            FakeModel(),
+            step,
+            {}
+        )
+
+
+def test_builds_constrained_argument_json() -> None:
+    """Constrained argument generation follows literal and value steps."""
+    steps = [
+        ArgumentGenerationStep(
+            literal="{",
+            parameter_name=None,
+            parameter_type=None
+        ),
+        ArgumentGenerationStep(
+            literal='"a": ',
+            parameter_name=None,
+            parameter_type=None
+        ),
+        ArgumentGenerationStep(
+            literal="",
+            parameter_name="a",
+            parameter_type="number"
+        ),
+        ArgumentGenerationStep(
+            literal="}",
+            parameter_name=None,
+            parameter_type=None
+        )
+    ]
+
+    argument_json = build_constrained_argument_json(
+        FakeModel(),
+        steps,
+        {
+            "a": 2.0
+        }
+    )
+
+    assert argument_json == '{"a": 2.0}'
+
+
+def test_builds_constrained_argument_object() -> None:
+    """Constrained argument generation returns a parsed object."""
+    steps = [
+        ArgumentGenerationStep(
+            literal="{",
+            parameter_name=None,
+            parameter_type=None
+        ),
+        ArgumentGenerationStep(
+            literal='"name": ',
+            parameter_name=None,
+            parameter_type=None
+        ),
+        ArgumentGenerationStep(
+            literal="",
+            parameter_name="name",
+            parameter_type="string"
+        ),
+        ArgumentGenerationStep(
+            literal="}",
+            parameter_name=None,
+            parameter_type=None
+        )
+    ]
+
+    argument_object = build_constrained_argument_object(
+        FakeModel(),
+        steps,
+        {
+            "name": "john"
+        }
+    )
+
+    assert argument_object == {
+        "name": "john"
+    }
+
+
+def test_validates_argument_object_against_schema() -> None:
+    """Argument validation accepts matching keys and value types."""
+    schema = ArgumentSchema(
+        parameters=[
+            ("name", "string"),
+            ("age", "integer")
+        ]
+    )
+
+    arguments = validate_argument_object(
+        schema,
+        {
+            "name": "john",
+            "age": 42
+        }
+    )
+
+    assert arguments == {
+        "name": "john",
+        "age": 42
+    }
+
+
+def test_rejects_argument_object_with_missing_key() -> None:
+    """Argument validation requires every schema key."""
+    schema = ArgumentSchema(
+        parameters=[
+            ("name", "string"),
+            ("age", "integer")
+        ]
+    )
+
+    with pytest.raises(ModelInferenceError, match="missing required"):
+        validate_argument_object(
+            schema,
+            {
+                "name": "john"
+            }
+        )
+
+
+def test_rejects_argument_object_with_extra_key() -> None:
+    """Argument validation rejects keys outside the schema."""
+    schema = ArgumentSchema(
+        parameters=[
+            ("name", "string")
+        ]
+    )
+
+    with pytest.raises(ModelInferenceError, match="unexpected keys"):
+        validate_argument_object(
+            schema,
+            {
+                "name": "john",
+                "extra": "value"
+            }
+        )
+
+
+def test_rejects_argument_object_with_wrong_type() -> None:
+    """Argument validation rejects values with the wrong JSON type."""
+    schema = ArgumentSchema(
+        parameters=[
+            ("age", "integer")
+        ]
+    )
+
+    with pytest.raises(ModelInferenceError, match="expected type integer"):
+        validate_argument_object(
+            schema,
+            {
+                "age": "42"
+            }
+        )
+
+
+def test_builds_validated_constrained_argument_object() -> None:
+    """Validated constrained generation builds an object from a schema."""
+    schema = ArgumentSchema(
+        parameters=[
+            ("a", "number"),
+            ("b", "number")
+        ]
+    )
+
+    argument_object = build_validated_constrained_argument_object(
+        FakeModel(),
+        schema,
+        {
+            "a": 2.0,
+            "b": 3.0
+        }
+    )
+
+    assert argument_object == {
+        "a": 2.0,
+        "b": 3.0
+    }

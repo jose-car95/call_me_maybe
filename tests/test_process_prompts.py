@@ -18,11 +18,17 @@ class SingleFunctionModel:
         if text == "fn_example":
             return [1]
 
-        return [10, 20]
+        return [
+            ord(character)
+            for character in text
+        ]
 
     def decode(self, token_ids: list[int]) -> str:
-        """Decode is not needed by prompt processing."""
-        return ""
+        """Decode character code points into text."""
+        return "".join(
+            chr(token_id)
+            for token_id in token_ids
+        )
 
     def get_logits(self, input_ids: list[int]) -> list[float]:
         """Select token 1."""

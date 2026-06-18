@@ -1,5 +1,11 @@
 """Use case for processing prompts into function call results."""
 
+from typing import Any
+
+from src.application.argument_decoder import (
+    build_validated_constrained_argument_object
+)
+from src.application.argument_schema import build_argument_schema
 from src.application.extract_arguments import extract_arguments
 from src.application.ports import LanguageModel
 from src.application.select_function import select_function_name
@@ -7,6 +13,7 @@ from src.domain import (
     FunctionCallResult,
     FunctionDefinition,
     FunctionDefinitionError,
+    ModelInferenceError,
     PromptCase
 )
 
@@ -23,6 +30,28 @@ def _find_function_by_name(
     raise FunctionDefinitionError(
         f"selected function does not exist: {selected_name}"
     )
+
+
+def _build_constrained_arguments(
+    model: LanguageModel,
+    user_prompt: str,
+    function: FunctionDefinition
+) -> dict[str, Any]:
+    """Build arguments with constrained JSON generation and fallback."""
+    fallback_arguments = extract_arguments(
+        user_prompt,
+        function
+    )
+    schema = build_argument_schema(function)
+
+    try:
+        return build_validated_constrained_argument_object(
+            model,
+            schema,
+            fallback_arguments
+        )
+    except ModelInferenceError:
+        return fallback_arguments
 
 
 def process_prompts(
@@ -48,7 +77,8 @@ def process_prompts(
             functions,
             selected_name
         )
-        args = extract_arguments(
+        args = _build_constrained_arguments(
+            model,
             prompt.prompt,
             selected_function
         )
