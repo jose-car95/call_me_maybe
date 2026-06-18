@@ -2,6 +2,8 @@
 
 from src.application import (
     build_argument_extraction_prompt,
+    build_argument_schema_template,
+    build_constrained_argument_generation_prompt,
     build_empty_arguments,
     extract_arguments
 )
@@ -271,3 +273,45 @@ def test_extract_arguments_extracts_substitution_vowel_arguments() -> None:
         "regex": r"[aeiouAEIOU]",
         "replacement": "asterisks"
     }
+
+
+def test_builds_argument_schema_template() -> None:
+    """Argument schema templates include every required parameter."""
+    function = create_function_with_parameters(
+        {
+            "name": "string",
+            "age": "integer",
+            "active": "boolean"
+        }
+    )
+
+    template = build_argument_schema_template(function)
+
+    assert template == {
+        "name": "",
+        "age": 0,
+        "active": False
+    }
+
+
+def test_builds_constrained_argument_generation_prompt() -> None:
+    """Argument generation prompts include schema templates."""
+    function = create_function_with_parameters(
+        {
+            "a": "number",
+            "b": "number"
+        }
+    )
+
+    prompt = build_constrained_argument_generation_prompt(
+        "What is the sum of 2 and 3?",
+        function
+    )
+
+    assert "Function:\nfn_test" in prompt
+    assert "- a: number" in prompt
+    assert "- b: number" in prompt
+    assert "User request:\nWhat is the sum of 2 and 3?" in prompt
+    assert '"a": 0' in prompt
+    assert '"b": 0' in prompt
+    assert prompt.endswith("Arguments JSON:\n")

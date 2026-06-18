@@ -1,6 +1,7 @@
 """Use cases for extracting function arguments."""
 
 from dataclasses import dataclass
+import json
 import re
 from typing import Any
 
@@ -232,3 +233,40 @@ def extract_arguments(
         arguments[name] = value
 
     return arguments
+
+
+def build_argument_schema_template(
+    function: FunctionDefinition
+) -> dict[str, Any]:
+    """Build the expected argument JSON shape for a function."""
+    return build_empty_arguments(function)
+
+
+def build_constrained_argument_generation_prompt(
+    user_prompt: str,
+    function: FunctionDefinition
+) -> str:
+    """Build the prompt used to generate arguments with schema constraints."""
+    parameter_lines = [
+        f"- {name}: {spec.type}"
+        for name, spec in function.parameters.items()
+    ]
+    parameters_text = "\n".join(parameter_lines)
+    schema_template = json.dumps(
+        build_argument_schema_template(function)
+    )
+
+    return (
+        "Extract arguments as JSON.\n\n"
+        "Function:\n"
+        f"{function.name}\n\n"
+        "Description:\n"
+        f"{function.description}\n\n"
+        "Parameters:\n"
+        f"{parameters_text}\n\n"
+        "User request:\n"
+        f"{user_prompt}\n\n"
+        "JSON schema template:\n"
+        f"{schema_template}\n\n"
+        "Arguments JSON:\n"
+    )
