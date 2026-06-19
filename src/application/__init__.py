@@ -14,8 +14,10 @@ from src.application.select_function import (
     build_function_selection_prompt,
     find_allowed_next_tokens,
     find_completed_function_name,
+    score_function_name_candidate,
     select_best_allowed_token,
     select_function_name,
+    select_highest_scoring_function_name,
     tokenize_function_names
 )
 
@@ -32,7 +34,9 @@ __all__ = [
     "find_completed_function_name",
     "predict_next_token",
     "process_prompts",
+    "score_function_name_candidate",
     "select_best_allowed_token",
     "select_function_name",
+    "select_highest_scoring_function_name",
     "tokenize_function_names"
 ]

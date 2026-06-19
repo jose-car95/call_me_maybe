@@ -14,6 +14,7 @@ class ArgumentPatternMatcher:
 
     number_pattern: str = r"-?\d+(?:\.\d+)?"
     quoted_text_pattern: str = r"'([^']*)'|\"([^\"]*)\""
+    email_pattern: str = r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"
 
     def extract_numbers(self, text: str) -> list[float]:
         """Extract numeric values from text."""
@@ -36,6 +37,30 @@ class ArgumentPatternMatcher:
             single_quoted or double_quoted
             for single_quoted, double_quoted in matches
         ]
+
+    def extract_emails(self, text: str) -> list[str]:
+        """Extract email addresses from text."""
+        return re.findall(
+            self.email_pattern,
+            text
+        )
+
+    def extract_boolean(self, text: str) -> bool | None:
+        """Extract a boolean value from text."""
+        lowered_text = text.lower()
+        true_words = {"true", "yes", "enabled", "active"}
+        false_words = {"false", "no", "disabled", "inactive"}
+        words = {
+            word.strip(".,!?;:")
+            for word in lowered_text.split()
+        }
+
+        if words & true_words:
+            return True
+        if words & false_words:
+            return False
+
+        return None
 
     def extract_last_word(self, text: str) -> str:
         """Extract the last word from text."""
@@ -97,44 +122,76 @@ def _empty_value_for_type(type_name: str) -> Any:
 
 
 def _extract_argument_value(
+    parameter_name: str,
     type_name: str,
     numbers: list[float],
     number_index: int,
     quoted_texts: list[str],
     quoted_text_index: int,
+    emails: list[str],
+    email_index: int,
     matcher: ArgumentPatternMatcher,
     user_prompt: str
-) -> tuple[Any, int, int]:
+) -> tuple[Any, int, int, int]:
     """Extract one argument value and return the updated indexes."""
     if type_name in {"number", "integer"}:
         if number_index >= len(numbers):
             return (
                 _empty_value_for_type(type_name),
                 number_index,
-                quoted_text_index
+                quoted_text_index,
+                email_index
             )
 
         value = numbers[number_index]
         if type_name == "integer":
             value = int(value)
 
-        return value, number_index + 1, quoted_text_index
+        return value, number_index + 1, quoted_text_index, email_index
 
     if type_name == "string":
+        if "email" in parameter_name and email_index < len(emails):
+            return (
+                emails[email_index],
+                number_index,
+                quoted_text_index,
+                email_index + 1
+            )
+
         if quoted_text_index < len(quoted_texts):
             return (
                 quoted_texts[quoted_text_index],
                 number_index,
-                quoted_text_index + 1
+                quoted_text_index + 1,
+                email_index
             )
 
         return (
             matcher.extract_last_word(user_prompt),
             number_index,
-            quoted_text_index
+            quoted_text_index,
+            email_index
         )
 
-    return _empty_value_for_type(type_name), number_index, quoted_text_index
+    if type_name == "boolean":
+        boolean_value = matcher.extract_boolean(user_prompt)
+
+        if boolean_value is None:
+            boolean_value = _empty_value_for_type(type_name)
+
+        return (
+            boolean_value,
+            number_index,
+            quoted_text_index,
+            email_index
+        )
+
+    return (
+        _empty_value_for_type(type_name),
+        number_index,
+        quoted_text_index,
+        email_index
+    )
 
 
 def _is_regex_substitution(function: FunctionDefinition) -> bool:
@@ -160,25 +217,36 @@ def _extract_replacement_after_with(user_prompt: str) -> str:
     return user_prompt[marker_index + len(marker):].strip(" .,!?:;")
 
 
+def _extract_regex_pattern(user_prompt: str) -> str:
+    """Extract a reusable regex pattern from natural-language targets."""
+    lowered_prompt = user_prompt.lower()
+    regex_patterns = {
+        "numbers": r"\d+",
+        "digits": r"\d+",
+        "vowels": r"[aeiouAEIOU]",
+        "spaces": r"\s+",
+        "whitespace": r"\s+"
+    }
+
+    for keyword, pattern in regex_patterns.items():
+        if keyword in lowered_prompt:
+            return pattern
+
+    return ""
+
+
 def _extract_regex_substitution_arguments(
     user_prompt: str,
     matcher: ArgumentPatternMatcher
 ) -> dict[str, Any]:
     """Extract arguments for source, regex and replacement schema."""
     quoted_texts = matcher.extract_quoted_texts(user_prompt)
-    lowered_prompt = user_prompt.lower()
+    regex_pattern = _extract_regex_pattern(user_prompt)
 
-    if "numbers" in lowered_prompt and quoted_texts:
+    if regex_pattern and quoted_texts:
         return {
             "source_string": quoted_texts[0],
-            "regex": r"\d+",
-            "replacement": _extract_replacement_after_with(user_prompt)
-        }
-
-    if "vowels" in lowered_prompt and quoted_texts:
-        return {
-            "source_string": quoted_texts[0],
-            "regex": r"[aeiouAEIOU]",
+            "regex": regex_pattern,
             "replacement": _extract_replacement_after_with(user_prompt)
         }
 
@@ -216,19 +284,26 @@ def extract_arguments(
 
     numbers = matcher.extract_numbers(user_prompt)
     quoted_texts = matcher.extract_quoted_texts(user_prompt)
+    emails = matcher.extract_emails(user_prompt)
     number_index: int = 0
     quoted_text_index = 0
+    email_index = 0
     arguments: dict[str, Any] = {}
 
     for name, spec in function.parameters.items():
-        value, number_index, quoted_text_index = _extract_argument_value(
-            spec.type,
-            numbers,
-            number_index,
-            quoted_texts,
-            quoted_text_index,
-            matcher,
-            user_prompt
+        value, number_index, quoted_text_index, email_index = (
+            _extract_argument_value(
+                name,
+                spec.type,
+                numbers,
+                number_index,
+                quoted_texts,
+                quoted_text_index,
+                emails,
+                email_index,
+                matcher,
+                user_prompt
+            )
         )
         arguments[name] = value
 

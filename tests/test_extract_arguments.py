@@ -181,6 +181,42 @@ def test_extract_arguments_extracts_last_word_for_unquoted_string() -> None:
     }
 
 
+def test_extract_arguments_extracts_unquoted_email() -> None:
+    """Email parameters are filled from unquoted email addresses."""
+    function = create_function_with_parameters(
+        {
+            "email": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Extract the email ada.lovelace@example.com from this request",
+        function
+    )
+
+    assert args == {
+        "email": "ada.lovelace@example.com"
+    }
+
+
+def test_extract_arguments_extracts_boolean_true() -> None:
+    """Boolean parameters are filled from true-like words."""
+    function = create_function_with_parameters(
+        {
+            "is_admin": "boolean"
+        }
+    )
+
+    args = extract_arguments(
+        "Create a user profile with admin true",
+        function
+    )
+
+    assert args == {
+        "is_admin": True
+    }
+
+
 def test_extract_arguments_extracts_quoted_strings_by_parameter_order(
 ) -> None:
     """String parameters are filled from quoted text in order."""
@@ -272,6 +308,28 @@ def test_extract_arguments_extracts_substitution_vowel_arguments() -> None:
         "source_string": "Programming is fun",
         "regex": r"[aeiouAEIOU]",
         "replacement": "asterisks"
+    }
+
+
+def test_extract_arguments_extracts_substitution_space_arguments() -> None:
+    """Space replacement prompts become a whitespace regex."""
+    function = create_function_with_parameters(
+        {
+            "source_string": "string",
+            "regex": "string",
+            "replacement": "string"
+        }
+    )
+
+    args = extract_arguments(
+        "Replace all spaces in 'hello world from 42' with underscores",
+        function
+    )
+
+    assert args == {
+        "source_string": "hello world from 42",
+        "regex": r"\s+",
+        "replacement": "underscores"
     }
 
 

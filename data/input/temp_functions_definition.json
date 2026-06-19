@@ -1,0 +1,119 @@
+[
+  {
+    "name": "fn_multiply_numbers",
+    "description": "Multiply two numbers together.",
+    "parameters": {
+      "a": {
+        "type": "number"
+      },
+      "b": {
+        "type": "number"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  },
+  {
+    "name": "fn_calculate_discount",
+    "description": "Calculate the final price after applying a discount percentage.",
+    "parameters": {
+      "price": {
+        "type": "number"
+      },
+      "discount_percent": {
+        "type": "number"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  },
+  {
+    "name": "fn_extract_user_email",
+    "description": "Extract an email address from a user request.",
+    "parameters": {
+      "email": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "string"
+    }
+  },
+  {
+    "name": "fn_send_email",
+    "description": "Send an email to a recipient with a subject and body.",
+    "parameters": {
+      "recipient": {
+        "type": "string"
+      },
+      "subject": {
+        "type": "string"
+      },
+      "body": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "boolean"
+    }
+  },
+  {
+    "name": "fn_schedule_meeting",
+    "description": "Schedule a meeting with a person on a date at a time.",
+    "parameters": {
+      "person": {
+        "type": "string"
+      },
+      "date": {
+        "type": "string"
+      },
+      "time": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "boolean"
+    }
+  },
+  {
+    "name": "fn_substitute_string_with_regex",
+    "description": "Replace all occurrences matching a regex pattern in a string.",
+    "parameters": {
+      "source_string": {
+        "type": "string"
+      },
+      "regex": {
+        "type": "string"
+      },
+      "replacement": {
+        "type": "string"
+      }
+    },
+    "returns": {
+      "type": "string"
+    }
+  },
+  {
+    "name": "fn_create_user_profile",
+    "description": "Create a user profile with a name, age, email and admin flag.",
+    "parameters": {
+      "name": {
+        "type": "string"
+      },
+      "age": {
+        "type": "integer"
+      },
+      "email": {
+        "type": "string"
+      },
+      "is_admin": {
+        "type": "boolean"
+      }
+    },
+    "returns": {
+      "type": "object"
+    }
+  }
+]

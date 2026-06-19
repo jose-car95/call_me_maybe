@@ -6,8 +6,10 @@ from src.application import (
     build_function_selection_prompt,
     find_allowed_next_tokens,
     find_completed_function_name,
+    score_function_name_candidate,
     select_best_allowed_token,
     select_function_name,
+    select_highest_scoring_function_name,
     tokenize_function_names
 )
 from src.domain import FunctionDefinition, ReturnSpec, ModelInferenceError
@@ -113,6 +115,58 @@ class GuidedLanguageModel:
         logits = [0.0, 0.0, 0.1, 0.9]
 
         return logits
+
+
+class CompleteScoringLanguageModel:
+    """Language model where complete scoring beats greedy token choice."""
+
+    def encode(self, text: str) -> list[int]:
+        """Encode prompts and function names predictably."""
+        tokens = {
+            "fn_short": [1],
+            "fn_better": [2, 3]
+        }
+
+        if text in tokens:
+            return tokens[text]
+
+        return [10]
+
+    def decode(self, token_ids: list[int]) -> str:
+        """Decode is not needed by function selection."""
+        return ""
+
+    def get_logits(self, input_ids: list[int]) -> list[float]:
+        """Prefer fn_short first, but fn_better as a full candidate."""
+        if input_ids == [10]:
+            return [0.0, 0.6, 0.55, 0.0]
+
+        if input_ids == [10, 2]:
+            return [0.0, 0.0, 0.0, 0.95]
+
+        return [0.0, 0.0, 0.0, 0.0]
+
+
+class CountingSharedPrefixLanguageModel:
+    """Language model that records scoring calls for shared prefixes."""
+
+    def __init__(self) -> None:
+        """Initialize call counters."""
+        self.calls: list[tuple[int, ...]] = []
+
+    def encode(self, text: str) -> list[int]:
+        """Encode is not needed by this test."""
+        return []
+
+    def decode(self, token_ids: list[int]) -> str:
+        """Decode is not needed by this test."""
+        return ""
+
+    def get_logits(self, input_ids: list[int]) -> list[float]:
+        """Return logits and record the requested input prefix."""
+        self.calls.append(tuple(input_ids))
+
+        return [0.0, 0.5, 0.6, 0.7, 0.8]
 
 
 def test_tokenizes_every_function_name() -> None:
@@ -277,3 +331,47 @@ def test_selects_function_name_with_constrained_decoding() -> None:
     )
 
     assert selected_name == "fn_greet"
+
+
+def test_scores_function_name_candidate_with_average_logits() -> None:
+    """Function candidate scores are normalized by token count."""
+    score = score_function_name_candidate(
+        CompleteScoringLanguageModel(),
+        [10],
+        [2, 3]
+    )
+
+    assert score == pytest.approx(0.75)
+
+
+def test_selects_highest_scoring_complete_function_name() -> None:
+    """Complete-candidate scoring avoids greedy first-token traps."""
+    tokenized_functions = {
+        "fn_short": [1],
+        "fn_better": [2, 3]
+    }
+
+    selected_name = select_highest_scoring_function_name(
+        CompleteScoringLanguageModel(),
+        [10],
+        tokenized_functions
+    )
+
+    assert selected_name == "fn_better"
+
+
+def test_complete_candidate_scoring_reuses_shared_prefix_logits() -> None:
+    """Candidate scoring caches logits for shared token prefixes."""
+    model = CountingSharedPrefixLanguageModel()
+    tokenized_functions = {
+        "fn_first": [1, 2],
+        "fn_second": [1, 3]
+    }
+
+    select_highest_scoring_function_name(
+        model,
+        [10],
+        tokenized_functions
+    )
+
+    assert model.calls.count((10,)) == 1

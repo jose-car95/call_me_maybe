@@ -96,6 +96,66 @@ def find_completed_function_name(
     return None
 
 
+def score_function_name_candidate(
+    model: LanguageModel,
+    prompt_tokens: list[int],
+    candidate_tokens: list[int],
+    logits_cache: dict[tuple[int, ...], list[float]] | None = None
+) -> float:
+    """Score a complete function name candidate with normalized logits."""
+    if not candidate_tokens:
+        raise ModelInferenceError(
+            "function name candidate must contain at least one token"
+        )
+
+    total_score = 0.0
+    generated_tokens: list[int] = []
+
+    for token_id in candidate_tokens:
+        input_tokens = prompt_tokens + generated_tokens
+        cache_key = tuple(input_tokens)
+        if logits_cache is not None and cache_key in logits_cache:
+            logits = logits_cache[cache_key]
+        else:
+            logits = model.get_logits(input_tokens)
+            if logits_cache is not None:
+                logits_cache[cache_key] = logits
+
+        if token_id < 0 or token_id >= len(logits):
+            raise ModelInferenceError(
+                "a candidate token is outside the model vocabulary"
+            )
+
+        total_score += logits[token_id]
+        generated_tokens.append(token_id)
+
+    return total_score / len(candidate_tokens)
+
+
+def select_highest_scoring_function_name(
+    model: LanguageModel,
+    prompt_tokens: list[int],
+    tokenized_functions: dict[str, list[int]]
+) -> str:
+    """Select the function name with the best complete-candidate score."""
+    if not tokenized_functions:
+        raise ModelInferenceError(
+            "at least one function candidate is required"
+        )
+
+    logits_cache: dict[tuple[int, ...], list[float]] = {}
+
+    return max(
+        tokenized_functions,
+        key=lambda function_name: score_function_name_candidate(
+            model,
+            prompt_tokens,
+            tokenized_functions[function_name],
+            logits_cache
+        )
+    )
+
+
 def select_function_name(
     model: LanguageModel,
     user_prompt: str,
