@@ -1,0 +1,229 @@
+[
+  {
+    "name": "fn_calculate_simple_interest",
+    "description": "Calculate non-compounding simple interest from principal, annual rate, and years.",
+    "parameters": {
+      "principal": {"type": "number"},
+      "annual_rate": {"type": "number"},
+      "years": {"type": "integer"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_calculate_compound_interest",
+    "description": "Calculate annually compounded interest from principal, annual rate, and years.",
+    "parameters": {
+      "principal": {"type": "number"},
+      "annual_rate": {"type": "number"},
+      "years": {"type": "integer"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_convert_temperature",
+    "description": "Convert a temperature value between Celsius, Fahrenheit, and Kelvin.",
+    "parameters": {
+      "value": {"type": "number"},
+      "from_unit": {
+        "type": "string",
+        "enum": ["celsius", "fahrenheit", "kelvin"]
+      },
+      "to_unit": {
+        "type": "string",
+        "enum": ["celsius", "fahrenheit", "kelvin"]
+      }
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_convert_currency",
+    "description": "Convert a monetary amount from one ISO currency to another.",
+    "parameters": {
+      "amount": {"type": "number"},
+      "from_currency": {
+        "type": "string",
+        "enum": ["EUR", "USD", "GBP", "JPY"]
+      },
+      "to_currency": {
+        "type": "string",
+        "enum": ["EUR", "USD", "GBP", "JPY"]
+      }
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_schedule_event",
+    "description": "Schedule a calendar event for an attendee at an ISO timestamp and timezone.",
+    "parameters": {
+      "title": {"type": "string"},
+      "attendee_email": {"type": "string"},
+      "start_at": {"type": "string"},
+      "timezone": {
+        "type": "string",
+        "enum": ["UTC", "Europe/Madrid", "America/New_York", "Asia/Tokyo"]
+      },
+      "notify": {"type": "boolean"}
+    },
+    "returns": {"type": "object"}
+  },
+  {
+    "name": "fn_send_email",
+    "description": "Send an email message with recipient, subject, body, and urgency flag.",
+    "parameters": {
+      "recipient_email": {"type": "string"},
+      "subject": {"type": "string"},
+      "body": {"type": "string"},
+      "urgent": {"type": "boolean"}
+    },
+    "returns": {"type": "boolean"}
+  },
+  {
+    "name": "fn_read_text_file",
+    "description": "Read a text file from an absolute path using a specified character encoding.",
+    "parameters": {
+      "path": {"type": "string"},
+      "encoding": {
+        "type": "string",
+        "enum": ["utf-8", "utf-16", "latin-1", "ascii"]
+      }
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_execute_database_query",
+    "description": "Execute a SQL query against a named database environment.",
+    "parameters": {
+      "query": {"type": "string"},
+      "database": {
+        "type": "string",
+        "enum": ["development", "staging", "production", "analytics"]
+      }
+    },
+    "returns": {"type": "array"}
+  },
+  {
+    "name": "fn_substitute_string_with_regex",
+    "description": "Replace all regex matches in a source string with a replacement value.",
+    "parameters": {
+      "source_string": {"type": "string"},
+      "regex": {"type": "string"},
+      "replacement": {"type": "string"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_translate_text",
+    "description": "Translate text between supported languages while optionally preserving formatting.",
+    "parameters": {
+      "text": {"type": "string"},
+      "source_language": {
+        "type": "string",
+        "enum": ["English", "Spanish", "French", "Japanese"]
+      },
+      "target_language": {
+        "type": "string",
+        "enum": ["English", "Spanish", "French", "Japanese"]
+      },
+      "preserve_formatting": {"type": "boolean"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_summarize_text",
+    "description": "Summarize text to a maximum number of words while retaining its language.",
+    "parameters": {
+      "text": {"type": "string"},
+      "max_words": {"type": "integer"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_filter_measurements",
+    "description": "Filter numeric measurements using a threshold and inclusive comparison mode.",
+    "parameters": {
+      "values": {
+        "type": "array",
+        "items": {"type": "number"}
+      },
+      "threshold": {"type": "number"},
+      "inclusive": {"type": "boolean"}
+    },
+    "returns": {"type": "array"}
+  },
+  {
+    "name": "fn_create_deployment",
+    "description": "Create a deployment from a nested configuration object.",
+    "parameters": {
+      "config": {
+        "type": "object",
+        "properties": {
+          "service": {"type": "string"},
+          "environment": {
+            "type": "string",
+            "enum": ["development", "staging", "production"]
+          },
+          "replicas": {"type": "integer"},
+          "features": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "required": ["service", "environment", "replicas", "features"]
+      }
+    },
+    "returns": {"type": "object"}
+  },
+  {
+    "name": "fn_create_user_profile",
+    "description": "Create a nested user profile with identity, roles, and preferences.",
+    "parameters": {
+      "profile": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string"},
+          "age": {"type": "integer"},
+          "roles": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "language": {
+                "type": "string",
+                "enum": ["en", "es", "fr", "ja"]
+              },
+              "dark_mode": {"type": "boolean"}
+            },
+            "required": ["language", "dark_mode"]
+          }
+        },
+        "required": ["name", "age", "roles", "preferences"]
+      }
+    },
+    "returns": {"type": "object"}
+  },
+  {
+    "name": "fn_compare_versions",
+    "description": "Compare two semantic version strings and report their ordering.",
+    "parameters": {
+      "left_version": {"type": "string"},
+      "right_version": {"type": "string"}
+    },
+    "returns": {"type": "integer"}
+  },
+  {
+    "name": "fn_find_route",
+    "description": "Find a route between an origin and destination using a transport mode.",
+    "parameters": {
+      "origin": {"type": "string"},
+      "destination": {"type": "string"},
+      "mode": {
+        "type": "string",
+        "enum": ["walking", "cycling", "driving", "transit"]
+      },
+      "avoid_tolls": {"type": "boolean"}
+    },
+    "returns": {"type": "object"}
+  }
+]

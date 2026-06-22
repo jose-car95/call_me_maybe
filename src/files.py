@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, cast
 
 from pydantic import BaseModel, ValidationError
 
-from src.domain import (
+from src.models import (
     FunctionCallResult,
     FunctionDefinition,
     FunctionDefinitionError,
@@ -19,16 +19,18 @@ from src.domain import (
 )
 
 
-DEFAULT_INPUT_DIR = Path("data/input")
-DEFAULT_OUTPUT_PATH = Path("data/output/function_calling_results.json")
-DEFAULT_TESTS_PATH = DEFAULT_INPUT_DIR / "function_calling_tests.json"
-DEFAULT_FUNCTIONS_PATH = DEFAULT_INPUT_DIR / "functions_definition.json"
-
-ModelT = TypeVar("ModelT", bound=BaseModel)
-
-
 def _load_json(path: Path) -> Any:
-    """Load a JSON document from the filesystem."""
+    """Load a JSON document from the filesystem.
+
+    Args:
+        path: File expected to contain JSON data.
+
+    Returns:
+        Decoded JSON value.
+
+    Raises:
+        InputFileError: If the path is invalid, unreadable, or malformed.
+    """
     if not path.exists():
         raise InputFileError(f"input file does not exist: {path}")
     if not path.is_file():
@@ -47,16 +49,29 @@ def _load_json(path: Path) -> Any:
 def _validate_array(
     raw_data: Any,
     path: Path,
-    model: type[ModelT],
+    model: type[BaseModel],
     item_name: str
-) -> list[ModelT]:
-    """Validate a JSON array against one Pydantic model."""
+) -> list[BaseModel]:
+    """Validate a JSON array against one Pydantic model.
+
+    Args:
+        raw_data: Decoded JSON root value.
+        path: Source path used in error messages.
+        model: Pydantic model applied to each item.
+        item_name: Human-readable item name used in errors.
+
+    Returns:
+        Validated model instances in input order.
+
+    Raises:
+        InputValidationError: If the root or any item is invalid.
+    """
     if not isinstance(raw_data, list):
         raise InputValidationError(
             f"{path} must contain a JSON array"
         )
 
-    validated: list[ModelT] = []
+    validated: list[BaseModel] = []
     for index, item in enumerate(raw_data):
         try:
             validated.append(model.model_validate(item))
@@ -67,22 +82,51 @@ def _validate_array(
 
 
 def load_prompt_cases(path: Path) -> list[PromptCase]:
-    """Load and validate natural-language prompt test cases."""
-    return _validate_array(
-        _load_json(path),
-        path,
-        PromptCase,
-        "prompt"
+    """Load and validate natural-language prompt test cases.
+
+    Args:
+        path: JSON file containing prompt entries.
+
+    Returns:
+        Validated prompt cases.
+
+    Raises:
+        InputFileError: If the file cannot be decoded.
+        InputValidationError: If a prompt entry is invalid.
+    """
+    return cast(
+        list[PromptCase],
+        _validate_array(
+            _load_json(path),
+            path,
+            PromptCase,
+            "prompt"
+        )
     )
 
 
 def load_function_definitions(path: Path) -> list[FunctionDefinition]:
-    """Load and validate available function definitions."""
-    functions = _validate_array(
-        _load_json(path),
-        path,
-        FunctionDefinition,
-        "function"
+    """Load and validate available function definitions.
+
+    Args:
+        path: JSON file containing function definitions.
+
+    Returns:
+        Validated functions in input order.
+
+    Raises:
+        InputFileError: If the file cannot be decoded.
+        InputValidationError: If a definition is invalid.
+        FunctionDefinitionError: If no usable unique functions exist.
+    """
+    functions = cast(
+        list[FunctionDefinition],
+        _validate_array(
+            _load_json(path),
+            path,
+            FunctionDefinition,
+            "function"
+        )
     )
     if not functions:
         raise FunctionDefinitionError(
@@ -102,7 +146,15 @@ def load_function_definitions(path: Path) -> list[FunctionDefinition]:
 
 
 def write_results(path: Path, results: list[FunctionCallResult]) -> None:
-    """Write function calling results as a JSON array."""
+    """Write function-calling results as a JSON array.
+
+    Args:
+        path: Destination file path.
+        results: Validated results to serialize.
+
+    Raises:
+        OutputFileError: If the destination cannot be created or written.
+    """
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = [result.model_dump(mode="json") for result in results]

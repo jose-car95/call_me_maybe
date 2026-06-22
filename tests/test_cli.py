@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.interfaces import main
+from src.cli import main
 
 
 class SingleFunctionModel:

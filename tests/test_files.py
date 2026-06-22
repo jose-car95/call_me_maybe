@@ -8,13 +8,13 @@ from typing import Any
 
 import pytest
 
-from src.domain import (
+from src.models import (
     FunctionCallResult,
     FunctionDefinitionError,
     InputFileError,
     InputValidationError,
 )
-from src.infrastructure import (
+from src.files import (
     load_function_definitions,
     load_prompt_cases,
     write_results,

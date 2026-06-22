@@ -13,6 +13,7 @@ dependencies = [
 dev = [
     "flake8>=7.0.0",
     "mypy>=1.8.0",
+    "pydocstyle>=6.3.0",
     "pytest>=8.0.0"
 ]
 
@@ -27,7 +28,8 @@ exclude = [
     "^\\.venv/",
     "^data/output/",
     "^docs/",
-    "^llm_sdk/"
+    "^llm_sdk/",
+    "^cmm_mouli/"
 ]
 
 [tool.pytest.ini_options]

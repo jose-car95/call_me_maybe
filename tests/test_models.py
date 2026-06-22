@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from src.domain import FunctionDefinition, PromptCase
+from src.models import FunctionDefinition, PromptCase
 
 
 def test_prompt_rejects_blank_text() -> None:
@@ -42,3 +42,38 @@ def test_function_rejects_blank_parameter_name() -> None:
 
     with pytest.raises(ValidationError):
         FunctionDefinition.model_validate(raw_function)
+
+
+def test_prompt_accepts_subject_plain_string_form() -> None:
+    """Prompt cases accept the subject's plain-string format."""
+    assert PromptCase.model_validate("Greet Ada").prompt == "Greet Ada"
+
+
+def test_function_accepts_recursive_parameter_constraints() -> None:
+    """Function parameters support enums and nested JSON schemas."""
+    function = FunctionDefinition.model_validate(
+        {
+            "name": "fn_configure",
+            "description": "Configure devices.",
+            "parameters": {
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "firmware": {
+                                "type": "string",
+                                "enum": ["stable", "beta"]
+                            }
+                        },
+                        "required": ["firmware"]
+                    }
+                }
+            },
+            "returns": {"type": "boolean"}
+        }
+    )
+
+    items = function.parameters["devices"].items
+    assert items is not None
+    assert items.required == ["firmware"]

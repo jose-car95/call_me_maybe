@@ -1,7 +1,7 @@
 """Tests for the Qwen SDK adapter."""
 
-from src.application import LanguageModel
-from src.infrastructure import QwenAdapter
+from src.engine import LanguageModel
+from src.llm import QwenAdapter
 
 
 class FakeEncodedTokens:
@@ -33,6 +33,10 @@ class FakeSDKModel:
     ) -> list[float]:
         """Return predictable logits."""
         return [0.1, 0.8, 0.2]
+
+    def get_path_to_tokenizer_file(self) -> str:
+        """Return an unused path required by the SDK contract."""
+        return "tokenizer.json"
 
 
 def accepts_language_model(model: LanguageModel) -> LanguageModel:
