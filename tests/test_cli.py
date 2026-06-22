@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.cli import main
+from src.cli import default_model_name, main, parse_args
 
 
 class SingleFunctionModel:
@@ -35,6 +35,28 @@ class SingleFunctionModel:
         return [0.0, 1.0, 0.5, 0.4, 0.3, 0.2]
 
 
+def test_default_function_file_matches_subject() -> None:
+    """The default definitions filename follows the subject wording."""
+    args = parse_args([])
+
+    assert args.functions == Path("data/input/function_definitions.json")
+    assert args.model == default_model_name()
+
+
+def test_list_models_returns_without_loading_inputs(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The model list is available without reading files or loading Qwen."""
+    exit_code = main(["--list-models"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Supported/recommended models" in captured.out
+    assert "Qwen/Qwen3-0.6B" in captured.out
+    assert "Qwen/Qwen3-1.7B" in captured.out
+    assert "Custom Hugging Face model ids" in captured.out
+
+
 def test_cli_returns_zero_and_writes_output(
     tmp_path: Path,
 ) -> None:
@@ -46,7 +68,7 @@ def test_cli_returns_zero_and_writes_output(
             "--input",
             "data/input/function_calling_tests.json",
             "--functions",
-            "data/input/functions_definition.json",
+            "data/input/function_definitions.json",
             "--output",
             str(output_path)
         ],
@@ -73,3 +95,24 @@ def test_cli_returns_one_for_missing_input(
     assert exit_code == 1
     assert "Error:" in captured.out
     assert "does not exist" in captured.out
+
+
+def test_cli_accepts_model_name_argument(tmp_path: Path) -> None:
+    """The model flag is accepted without affecting injected tests."""
+    output_path = tmp_path / "results.json"
+
+    exit_code = main(
+        [
+            "--input",
+            "data/input/function_calling_tests.json",
+            "--functions",
+            "data/input/function_definitions.json",
+            "--output",
+            str(output_path),
+            "--model",
+            "Qwen/Qwen3-0.6B"
+        ],
+        SingleFunctionModel()
+    )
+
+    assert exit_code == 0

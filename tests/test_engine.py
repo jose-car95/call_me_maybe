@@ -6,7 +6,6 @@ from src.engine import FunctionCallingEngine
 from src.models import (
     FunctionDefinition,
     FunctionDefinitionError,
-    ModelInferenceError,
     PromptCase
 )
 
@@ -93,7 +92,7 @@ def test_extracts_quoted_and_boolean_values() -> None:
             "Substitute the word 'cat' with 'dog' in 'cat and cat'",
             {
                 "source_string": "cat and cat",
-                "regex": "cat",
+                "regex": r"\bcat\b",
                 "replacement": "dog"
             }
         )
@@ -161,19 +160,36 @@ def test_validates_nested_json_from_prompt() -> None:
     assert arguments == {"config": {"firmware": "stable"}}
 
 
+def test_validates_nested_array_json_from_prompt() -> None:
+    function = _function(
+        {
+            "devices": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "firmware": {
+                            "type": "string",
+                            "enum": ["stable", "beta"]
+                        }
+                    },
+                    "required": ["firmware"]
+                }
+            }
+        }
+    )
+
+    arguments = _process(
+        'Configure devices [{"firmware": "beta"}]',
+        function
+    )
+
+    assert arguments == {"devices": [{"firmware": "beta"}]}
+
+
 class BrokenModel(CharacterModel):
     def get_logits(self, input_ids: list[int]) -> list[float]:
         return []
-
-
-def test_reports_constrained_inference_failure() -> None:
-    function = _function(
-        {"firmware": {"type": "string", "enum": ["stable", "beta"]}}
-    )
-    engine = FunctionCallingEngine(BrokenModel(), [function])
-
-    with pytest.raises(ModelInferenceError):
-        engine.process([PromptCase(prompt="Use stable firmware")])
 
 
 def test_trace_reports_selected_function() -> None:
@@ -188,3 +204,19 @@ def test_trace_reports_selected_function() -> None:
     engine.process([PromptCase(prompt="Greet Ada")])
 
     assert any(message.startswith("function=") for message in messages)
+    assert any("text=" in message for message in messages)
+
+
+def test_inference_error_falls_back_to_unable_result() -> None:
+    """One unresolved prompt becomes a controlled fallback result."""
+    function = _function(
+        {"firmware": {"type": "string", "enum": ["stable", "beta"]}}
+    )
+    engine = FunctionCallingEngine(BrokenModel(), [function])
+
+    result = engine.process([PromptCase(prompt="Use stable firmware")])[0]
+
+    assert result.fn_name == (
+        "Unable to retrieve from 'function_definitions.json'"
+    )
+    assert result.args == {}

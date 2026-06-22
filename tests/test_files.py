@@ -42,7 +42,7 @@ def test_loads_current_project_inputs() -> None:
         Path("data/input/function_calling_tests.json")
     )
     functions = load_function_definitions(
-        Path("data/input/functions_definition.json")
+        Path("data/input/function_definitions.json")
     )
 
     assert len(prompts) == 11

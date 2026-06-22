@@ -1,7 +1,7 @@
 """Tests for the Qwen SDK adapter."""
 
-from src.engine import LanguageModel
 from src.llm import QwenAdapter
+from src.ports import LanguageModel
 
 
 class FakeEncodedTokens:

@@ -137,6 +137,7 @@ class QwenAdapter:
     def __init__(
         self,
         model: SDKLanguageModel | None = None,
+        model_name: str = "Qwen/Qwen3-0.6B",
         device: str = "cpu",
         tokenizer: TextTokenizer | None = None
     ) -> None:
@@ -144,6 +145,7 @@ class QwenAdapter:
 
         Args:
             model: Optional injected public SDK implementation.
+            model_name: SDK model identifier used when no model is injected.
             device: Device used when constructing the default Qwen model.
             tokenizer: Optional tokenizer override for tests or integrations.
 
@@ -156,7 +158,7 @@ class QwenAdapter:
             if model is None:
                 model = cast(
                     SDKLanguageModel,
-                    Small_LLM_Model(device=device)
+                    Small_LLM_Model(model_name=model_name, device=device)
                 )
             if tokenizer is None:
                 if injected_model:

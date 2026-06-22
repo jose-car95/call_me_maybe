@@ -25,17 +25,36 @@ make run
 ```
 
 Por defecto se leen `data/input/function_calling_tests.json` y
-`data/input/functions_definition.json`, y se escribe
+`data/input/function_definitions.json`, y se escribe
 `data/output/function_calling_results.json`.
 
 ```bash
 uv run python -m src \
   --input data/input/function_calling_tests.json \
-  --functions data/input/functions_definition.json \
+  --functions data/input/function_definitions.json \
   --output /tmp/function_calling_results.json
 ```
 
-Para observar las decisiones restringidas:
+El modelo puede cambiarse manteniendo Qwen como valor por defecto:
+
+```bash
+uv run python -m src --model Qwen/Qwen3-0.6B
+```
+
+Modelos recomendados incorporados:
+
+```bash
+uv run python -m src --list-models
+uv run python -m src --model Qwen/Qwen3-1.7B
+```
+
+Para agregar o probar modelos nuevos, usa un identificador de Hugging Face
+compatible con el SDK, que exponga `tokenizer.json`, sea compatible con el
+tokenizador Byte-Level BPE del proyecto y entre en el presupuesto de memoria y
+tiempo de la evaluacion. Qwen/Qwen3-0.6B sigue siendo el modelo obligatorio por
+defecto.
+
+Para observar las decisiones restringidas y la recuperación controlada:
 
 ```bash
 uv run python -m src --trace
@@ -89,14 +108,20 @@ CLI -> archivos -> motor -> LLM/tokenizador -> resultado
 
 - `models.py`: modelos Pydantic, esquemas y errores.
 - `files.py`: lectura y escritura JSON.
-- `engine.py`: selección, extracción, restricciones y validación.
+- `ports.py`: contratos compartidos, como el modelo de lenguaje.
+- `constants.py`: valores compartidos expuestos mediante funciones.
+- `arguments.py`: extracción de argumentos, candidatos y ambigüedad.
+- `schema_validator.py`: validación recursiva contra el esquema.
+- `constrained_decoder.py`: selección restringida token a token.
+- `engine.py`: orquestación del flujo de function calling.
 - `llm.py`: adaptación del SDK de Qwen.
 - `tokenizer.py`: implementación Byte-Level BPE.
 - `cli.py`: línea de comandos.
+- `docs/funcionamiento.md`: recorrido completo para defensa.
 
 La estructura es deliberadamente plana porque el proyecto tiene un único caso de
-uso. Las funciones contienen transformaciones sin estado y las clases se reservan
-para el motor, el modelo y el tokenizador.
+uso. Cada archivo separa una responsabilidad concreta sin introducir carpetas
+innecesarias ni imports profundos.
 
 ## Decisiones De Diseño
 
@@ -123,6 +148,10 @@ Resultado privado: 11/11
 Los nombres de función se tokenizan una vez y el decodificador mantiene una caché.
 Los errores de archivos, validación, inicialización e inferencia se convierten en
 mensajes controlados.
+
+Si un prompt no puede resolverse sin romper el esquema, se devuelve un fallback
+controlado con `Unable to retrieve from 'function_definitions.json'` y argumentos
+vacíos, evitando que un caso aislado tumbe todo el lote.
 
 ## Retos Encontrados
 
