@@ -66,6 +66,31 @@ make lint
 make lint-strict
 ```
 
+## Usage example
+
+Input (`data/input/function_calling_tests.json`):
+
+```json
+["What is the sum of 2 and 3?", "Reverse the string 'hello'"]
+```
+
+Output (`data/output/function_calling_results.json`):
+
+```json
+[
+  {
+    "prompt": "What is the sum of 2 and 3?",
+    "fn_name": "fn_add_numbers",
+    "args": { "a": 2.0, "b": 3.0 }
+  },
+  {
+    "prompt": "Reverse the string 'hello'",
+    "fn_name": "fn_reverse_string",
+    "args": { "s": "hello" }
+  }
+]
+```
+
 ## Algorithm
 
 ### Function selection
@@ -125,7 +150,6 @@ CLI -> files -> engine -> LLM/tokenizer -> result
 - `llm.py`: adaptation of the Qwen SDK.
 - `tokenizer.py`: Byte-Level BPE implementation.
 - `cli.py`: command line.
-- `docs/funcionamiento.md`: full walkthrough for the defense.
 
 The structure is deliberately flat because the project has a single use case. Each
 file isolates one responsibility without introducing unnecessary folders or deep
@@ -143,12 +167,11 @@ imports.
 
 ## Performance and reliability
 
-Measured against the moulinette correction sets, Qwen3-0.6B on CPU:
+Local measurement over a set of 11 prompts, Qwen/Qwen3-0.6B on CPU:
 
 ```text
-Public set:  fn_name 11/11, args 11/11 (100%), ~42 s
-Private set: fn_name 11/11, args 11/11 (100%), ~57 s
-Parseable JSON: 100%   Peak memory: ~5.2 GB
+Function selection: 11/11    Arguments: 11/11 (100%)
+Time: ~42 s    Parseable JSON: 100%    Peak memory: ~5.2 GB
 ```
 
 Function names are tokenized once and the decoder keeps a cache. File, validation,
