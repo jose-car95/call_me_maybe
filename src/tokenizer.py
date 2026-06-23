@@ -137,6 +137,15 @@ def _pretokenize(text: str) -> list[str]:
         if text[index].isspace():
             while index < len(text) and text[index].isspace():
                 index += 1
+            # GPT-2/Qwen attach a single leading space to the following
+            # token, so a whitespace run before a non-newline token keeps
+            # every character but its last one here.
+            if (
+                index < len(text)
+                and index - start > 1
+                and text[index - 1] not in "\r\n"
+            ):
+                index -= 1
             pieces.append(text[start:index])
             continue
 

@@ -113,14 +113,38 @@ def test_resolves_regex_substitution(
     assert _process(prompt, function) == expected
 
 
-def test_extracts_contextual_strings() -> None:
-    function = _function(
-        {"path": {"type": "string"}, "encoding": {"type": "string"}}
+def test_extracts_value_from_label() -> None:
+    arguments = _process(
+        "Format template: Hello {user}",
+        _function({"template": {"type": "string"}})
     )
 
+    assert arguments == {"template": "Hello {user}"}
+
+
+def test_extracts_value_adjacent_to_parameter_name() -> None:
+    arguments = _process(
+        "Execute query 'SELECT 1' on the production database",
+        _function(
+            {
+                "query": {"type": "string"},
+                "database": {"type": "string"}
+            }
+        )
+    )
+
+    assert arguments == {"query": "SELECT 1", "database": "production"}
+
+
+def test_extracts_path_shaped_value() -> None:
     arguments = _process(
         "Read /home/user/data.json with utf-8 encoding",
-        function
+        _function(
+            {
+                "path": {"type": "string"},
+                "encoding": {"type": "string"}
+            }
+        )
     )
 
     assert arguments == {

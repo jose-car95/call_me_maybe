@@ -67,6 +67,9 @@ class ConstrainedDecoder:
         prompt_tokens = self._model.encode(prompt)
         generated: list[int] = []
         while True:
+            # When one candidate's tokens are a prefix of another's, the
+            # completed (shorter) candidate wins: a closed-set decoder has
+            # no boundary token to ask the model "stop or continue?".
             for text, tokens in tokenized.items():
                 if tokens == generated:
                     if self._trace is not None:

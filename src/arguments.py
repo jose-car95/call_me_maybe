@@ -76,60 +76,53 @@ def _last_word(prompt: str) -> str:
     return words[-1].strip(".,!?;:") if words else ""
 
 
-def _word_before(prompt: str, keyword: str) -> str | None:
-    """Find the word immediately preceding a keyword.
+def _labelled_value(prompt: str, name: str) -> str | None:
+    """Return the value introduced by a ``"<name>: value"`` label.
 
     Args:
         prompt: Natural-language request to inspect.
-        keyword: Case-insensitive marker whose preceding value is required.
+        name: Parameter name used as a case-insensitive label.
 
     Returns:
-        The preceding word when present, otherwise ``None``.
+        Text after the label, or ``None`` when the label is absent.
     """
     match = re.search(
-        rf"\b([\w.-]+)\s+{re.escape(keyword)}\b",
-        prompt,
-        flags=re.IGNORECASE
-    )
-    return match.group(1) if match else None
-
-
-def _after_label(prompt: str, label: str) -> str | None:
-    """Extract all content following a colon-terminated label.
-
-    Args:
-        prompt: Natural-language request to inspect.
-        label: Case-insensitive label introducing the value.
-
-    Returns:
-        Content after the label, or ``None`` when the label is absent.
-    """
-    match = re.search(
-        rf"\b{re.escape(label)}\s*:\s*(.+)$",
+        rf"\b{re.escape(name)}\s*:\s*(.+)$",
         prompt,
         flags=re.IGNORECASE
     )
     return match.group(1).strip() if match else None
 
 
-def _contextual_string(name: str, prompt: str) -> str | None:
-    """Extract string values with a recognizable parameter context.
+def _value_before(prompt: str, name: str) -> str | None:
+    """Return the word that directly precedes the parameter name.
 
     Args:
-        name: Parameter name supplied by the function schema.
+        prompt: Natural-language request to inspect.
+        name: Parameter name mentioned in the request.
+
+    Returns:
+        The preceding word when the name is mentioned, otherwise ``None``.
+    """
+    match = re.search(
+        rf"\b([\w.+-]+)\s+{re.escape(name)}\b",
+        prompt,
+        flags=re.IGNORECASE
+    )
+    return match.group(1) if match else None
+
+
+def _path_like(prompt: str) -> str | None:
+    """Return a filesystem-path-shaped token when one is present.
+
+    Args:
         prompt: Natural-language request to inspect.
 
     Returns:
-        A contextual value when recognized, otherwise ``None``.
+        The path-shaped token, or ``None`` when none is found.
     """
-    if name == "path":
-        match = re.search(r"(?:[A-Za-z]:\\|/)[^\s]+", prompt)
-        return match.group(0).rstrip(".,!?;:") if match else None
-    if name == "template":
-        return _after_label(prompt, name)
-    if name in {"database", "encoding"}:
-        return _word_before(prompt, name)
-    return None
+    match = re.search(r"(?:[A-Za-z]:\\|/)[^\s]+", prompt)
+    return match.group(0).rstrip(".,!?;:") if match else None
 
 
 def _replacement(prompt: str) -> str:
@@ -297,17 +290,24 @@ def extract_arguments(
             continue
 
         if spec.type == "string":
-            contextual = _contextual_string(name, prompt)
-            if contextual is not None:
-                arguments[name] = contextual
-            elif "email" in name and email_index < len(emails):
-                arguments[name] = emails[email_index]
+            text_value = _labelled_value(prompt, name)
+            if (
+                text_value is None
+                and "email" in name
+                and email_index < len(emails)
+            ):
+                text_value = emails[email_index]
                 email_index += 1
-            elif quoted_index < len(quoted):
-                arguments[name] = quoted[quoted_index]
+            if text_value is None and quoted_index < len(quoted):
+                text_value = quoted[quoted_index]
                 quoted_index += 1
-            else:
-                arguments[name] = _last_word(prompt)
+            if text_value is None:
+                text_value = _value_before(prompt, name)
+            if text_value is None:
+                text_value = _path_like(prompt)
+            if text_value is None:
+                text_value = _last_word(prompt)
+            arguments[name] = text_value
             continue
 
         if spec.type == "boolean":

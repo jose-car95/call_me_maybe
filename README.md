@@ -2,30 +2,29 @@
 
 # call_me_maybe
 
-## Descripción
+## Description
 
-`call_me_maybe` traduce peticiones en lenguaje natural a llamadas de función
-estructuradas. Selecciona una función disponible y produce sus argumentos con los
-nombres y tipos definidos en el esquema de entrada.
+`call_me_maybe` translates natural-language requests into structured function
+calls. It selects an available function and produces its arguments with the names
+and types declared in the input schema.
 
-El proyecto utiliza Qwen3-0.6B mediante el SDK proporcionado. La salida no depende
-de que el modelo escriba libremente un JSON correcto: los nombres de función se
-generan sobre un trie de tokens permitidos, los argumentos ambiguos se eligen entre
-candidatos compatibles y la estructura final se serializa y valida de forma
-determinista.
+The project uses Qwen3-0.6B through the provided SDK. The output does not rely on
+the model freely writing correct JSON: function names are generated over a trie of
+allowed tokens, ambiguous arguments are chosen among schema-compatible candidates,
+and the final structure is serialized and validated deterministically.
 
-## Instrucciones
+## Instructions
 
-Requisitos: Python 3.10 o posterior, `uv` y aproximadamente 6 GB de memoria para
-ejecutar Qwen en CPU.
+Requirements: Python 3.10 or later, `uv`, and roughly 6 GB of memory to run Qwen
+on CPU.
 
 ```bash
 make install
 make run
 ```
 
-Por defecto se leen `data/input/function_calling_tests.json` y
-`data/input/function_definitions.json`, y se escribe
+By default the program reads `data/input/function_calling_tests.json` and
+`data/input/function_definitions.json`, and writes
 `data/output/function_calling_results.json`.
 
 ```bash
@@ -35,32 +34,31 @@ uv run python -m src \
   --output /tmp/function_calling_results.json
 ```
 
-El modelo puede cambiarse manteniendo Qwen como valor por defecto:
+The model can be changed while keeping Qwen as the default:
 
 ```bash
 uv run python -m src --model Qwen/Qwen3-0.6B
 ```
 
-Modelos recomendados incorporados:
+Built-in recommended models:
 
 ```bash
 uv run python -m src --list-models
 uv run python -m src --model Qwen/Qwen3-1.7B
 ```
 
-Para agregar o probar modelos nuevos, usa un identificador de Hugging Face
-compatible con el SDK, que exponga `tokenizer.json`, sea compatible con el
-tokenizador Byte-Level BPE del proyecto y entre en el presupuesto de memoria y
-tiempo de la evaluacion. Qwen/Qwen3-0.6B sigue siendo el modelo obligatorio por
-defecto.
+To add or try new models, use a Hugging Face identifier compatible with the SDK
+that exposes a `tokenizer.json`, is compatible with the project's Byte-Level BPE
+tokenizer, and fits the memory and time budget of the evaluation. Qwen/Qwen3-0.6B
+remains the mandatory default model.
 
-Para observar las decisiones restringidas y la recuperación controlada:
+To observe the constrained decisions and the controlled recovery:
 
 ```bash
 uv run python -m src --trace
 ```
 
-Comprobaciones de desarrollo:
+Development checks:
 
 ```bash
 make test
@@ -68,115 +66,123 @@ make lint
 make lint-strict
 ```
 
-## Algoritmo
+## Algorithm
 
-### Selección De Función
+### Function selection
 
-1. Se construye un prompt con las funciones y sus descripciones.
-2. Cada nombre válido se tokeniza y se introduce en un trie lógico.
-3. Qwen produce logits para el siguiente token.
-4. Solo se comparan tokens que continúan algún nombre válido.
-5. El token permitido con mayor logit se añade al prefijo.
-6. El proceso termina al completar un nombre válido.
+1. A prompt is built with the functions and their descriptions.
+2. Each valid name is tokenized and placed into a logical trie.
+3. Qwen produces logits for the next token.
+4. Only tokens that continue some valid name are considered.
+5. The allowed token with the highest logit is appended to the prefix.
+6. The process stops when a valid name is complete.
 
-El modelo participa en la decisión semántica, pero no puede inventar una función.
+The model takes part in the semantic decision, but it cannot invent a function.
 
-### Extracción De Argumentos
+### Argument extraction
 
-Primero se extraen candidatos tipados a partir del prompt y del esquema. Los casos
-inequívocos se resuelven directamente para evitar inferencias innecesarias.
+First, typed candidates are extracted from the prompt and the schema using generic
+rules. Values are located by their JSON type (numbers, quoted strings, booleans,
+emails, embedded JSON) and by where they appear relative to the parameter itself: a
+`"<name>: value"` label, the word adjacent to the parameter name in the sentence, or
+a filesystem-path shape. The parameter name is used dynamically as a hint; there is
+no hardcoded list of anticipated parameter names. Unambiguous cases are resolved
+directly to avoid unnecessary inference.
 
-Cuando existen varios valores plausibles, un decodificador restringido crea un trie
-con sus representaciones JSON y consulta logits token a token. El modelo solo puede
-terminar en uno de esos valores. Finalmente se validan claves, tipos, enums y
-estructuras anidadas.
+When several plausible values exist, a constrained decoder builds a trie with their
+JSON representations and queries logits token by token. The model can only finish
+on one of those values. Finally, keys, types, enums, and nested structures are
+validated.
 
-El esquema soporta `string`, `number`, `integer`, `boolean`, `array`, `object`,
-`enum`, `items`, `properties` y `required`.
+The decoder is closed-set: if one candidate's tokens are a prefix of another's, the
+shorter candidate wins (there is no boundary token to ask the model whether to stop
+or continue). In practice the candidates do not overlap at the token level, so the
+tie-break is predictable and sufficient.
 
-### Tokenizador
+The schema supports `string`, `number`, `integer`, `boolean`, `array`, `object`,
+`enum`, `items`, `properties`, and `required`.
 
-El flujo principal no utiliza `encode` ni `decode` del SDK. La implementación propia
-de Byte-Level BPE carga `tokenizer.json` mediante un método público, aplica
-normalización NFC, pretokenización Unicode, mapeo reversible de bytes y merges BPE.
+### Tokenizer
 
-## Arquitectura
+The main flow does not use the SDK's `encode` or `decode`. The custom Byte-Level
+BPE implementation loads `tokenizer.json` through a public method, applies NFC
+normalization, Unicode pre-tokenization, a reversible byte mapping, and BPE merges.
 
-```text
-CLI -> archivos -> motor -> LLM/tokenizador -> resultado
-```
-
-- `models.py`: modelos Pydantic, esquemas y errores.
-- `files.py`: lectura y escritura JSON.
-- `ports.py`: contratos compartidos, como el modelo de lenguaje.
-- `constants.py`: valores compartidos expuestos mediante funciones.
-- `arguments.py`: extracción de argumentos, candidatos y ambigüedad.
-- `schema_validator.py`: validación recursiva contra el esquema.
-- `constrained_decoder.py`: selección restringida token a token.
-- `engine.py`: orquestación del flujo de function calling.
-- `llm.py`: adaptación del SDK de Qwen.
-- `tokenizer.py`: implementación Byte-Level BPE.
-- `cli.py`: línea de comandos.
-- `docs/funcionamiento.md`: recorrido completo para defensa.
-
-La estructura es deliberadamente plana porque el proyecto tiene un único caso de
-uso. Cada archivo separa una responsabilidad concreta sin introducir carpetas
-innecesarias ni imports profundos.
-
-## Decisiones De Diseño
-
-- Se usa selección greedy restringida porque puntuar cada función completa
-  multiplicaba el tiempo de inferencia en CPU.
-- La extracción es híbrida: reglas genéricas para casos inequívocos y LLM restringido
-  para ambigüedad. Generar todos los argumentos con logits superó cinco minutos.
-- La estructura JSON se construye desde el esquema, no desde texto libre.
-- `LanguageModel` desacopla el motor del SDK y permite pruebas rápidas.
-- Pydantic rechaza claves adicionales y valida recursivamente las entradas.
-
-## Rendimiento Y Fiabilidad
-
-Medición local sobre 11 prompts, Qwen3-0.6B en CPU:
+## Architecture
 
 ```text
-Tiempo: 41.87 s
-Memoria máxima aproximada: 5.2 GB
-JSON parseable: 100%
-Resultado público: 11/11
-Resultado privado: 11/11
+CLI -> files -> engine -> LLM/tokenizer -> result
 ```
 
-Los nombres de función se tokenizan una vez y el decodificador mantiene una caché.
-Los errores de archivos, validación, inicialización e inferencia se convierten en
-mensajes controlados.
+- `models.py`: Pydantic models, schemas, and errors.
+- `files.py`: JSON reading and writing.
+- `ports.py`: shared contracts, such as the language model.
+- `constants.py`: shared values exposed through functions.
+- `arguments.py`: argument extraction, candidates, and ambiguity.
+- `schema_validator.py`: recursive validation against the schema.
+- `constrained_decoder.py`: token-by-token constrained selection.
+- `engine.py`: orchestration of the function-calling flow.
+- `llm.py`: adaptation of the Qwen SDK.
+- `tokenizer.py`: Byte-Level BPE implementation.
+- `cli.py`: command line.
+- `docs/funcionamiento.md`: full walkthrough for the defense.
 
-Si un prompt no puede resolverse sin romper el esquema, se devuelve un fallback
-controlado con `Unable to retrieve from 'function_definitions.json'` y argumentos
-vacíos, evitando que un caso aislado tumbe todo el lote.
+The structure is deliberately flat because the project has a single use case. Each
+file isolates one responsibility without introducing unnecessary folders or deep
+imports.
 
-## Retos Encontrados
+## Design decisions
 
-- Qwen3-0.6B no genera estructuras fiables sin restricciones.
-- La puntuación exhaustiva mejoraba decisiones, pero incumplía el presupuesto de CPU.
-- Las regex no generalizan para strings arbitrarios; los casos ambiguos se delegan al
-  modelo dentro de candidatos válidos.
-- El tokenizador combina Unicode, bytes y BPE. La implementación propia se comparó
-  con el SDK usando texto, rutas, JSON, símbolos y varios idiomas.
+- Constrained greedy selection is used because scoring each complete function
+  multiplied inference time on CPU.
+- Extraction is hybrid: generic rules for unambiguous cases and a constrained LLM
+  for ambiguity. Generating every argument with logits exceeded five minutes.
+- The JSON structure is built from the schema, not from free text.
+- `LanguageModel` decouples the engine from the SDK and enables fast tests.
+- Pydantic rejects extra keys and recursively validates the inputs.
 
-## Estrategia De Pruebas
+## Performance and reliability
 
-La suite cubre modelos Pydantic, archivos inválidos, selección restringida, prefijos
-compartidos, tipos JSON, enums, esquemas recursivos, números complejos, strings,
-emails, rutas, plantillas, regex, errores del SDK, CLI, escritura final y Byte-Level
-BPE.
+Measured against the moulinette correction sets, Qwen3-0.6B on CPU:
 
-## Recursos
+```text
+Public set:  fn_name 11/11, args 11/11 (100%), ~42 s
+Private set: fn_name 11/11, args 11/11 (100%), ~57 s
+Parseable JSON: 100%   Peak memory: ~5.2 GB
+```
 
-- Subject oficial de `call_me_maybe`.
-- Documentación de Python para `json`, `typing` y `unicodedata`.
-- Documentación de Pydantic.
-- Artículo de OpenAI sobre Byte Pair Encoding.
-- Documentación pública de Qwen y Byte-Level BPE.
+Function names are tokenized once and the decoder keeps a cache. File, validation,
+initialization, and inference errors are turned into controlled messages.
 
-Se utilizó IA para revisar arquitectura, explorar alternativas, proponer casos límite
-y asistir en pruebas y documentación. Todo lo incorporado se revisó con pruebas,
-análisis estático y ejecuciones reales con el modelo.
+If a prompt cannot be resolved without breaking the schema, a controlled fallback
+is returned with `Unable to retrieve from 'function_definitions.json'` and empty
+arguments, preventing a single isolated case from taking down the whole batch.
+
+## Challenges
+
+- Qwen3-0.6B does not generate reliable structures without constraints.
+- Exhaustive scoring improved decisions but broke the CPU budget.
+- Regular expressions do not generalize for arbitrary strings; ambiguous cases are
+  delegated to the model within a set of valid candidates.
+- The tokenizer combines Unicode, bytes, and BPE. The custom implementation was
+  compared against the reference tokenizer using text, paths, JSON, symbols,
+  whitespace, and several languages (see the parity test).
+
+## Testing strategy
+
+The suite covers Pydantic models, invalid files, constrained selection, shared
+prefixes, JSON types, enums, recursive schemas, complex numbers, strings, emails,
+regex substitution, SDK errors, the CLI, final writing, Byte-Level BPE, and a
+parity check of the custom tokenizer against the reference tokenizer.
+
+## Resources
+
+- Official `call_me_maybe` subject.
+- Python documentation for `json`, `typing`, and `unicodedata`.
+- Pydantic documentation.
+- OpenAI article on Byte Pair Encoding.
+- Public Qwen and Byte-Level BPE documentation.
+
+AI was used to review the architecture, explore alternatives, propose edge cases,
+and assist with tests and documentation. Everything incorporated was reviewed with
+tests, static analysis, and real runs with the model.
