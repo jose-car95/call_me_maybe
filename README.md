@@ -206,6 +206,15 @@ parity check of the custom tokenizer against the reference tokenizer.
 - OpenAI article on Byte Pair Encoding.
 - Public Qwen and Byte-Level BPE documentation.
 
-AI was used to review the architecture, explore alternatives, propose edge cases,
-and assist with tests and documentation. Everything incorporated was reviewed with
-tests, static analysis, and real runs with the model.
+### AI usage statement
+
+AI was used as a development assistant for:
+
+- Refactoring suggestions and design discussion.
+- Code review and checklist generation against the subject requirements.
+- Documentation drafting and improvements (README and docstrings).
+- Proposing edge cases and tests.
+
+All AI-assisted output was reviewed and validated by hand with tests, static
+analysis (flake8/mypy), and real runs of the model. Only code that is fully
+understood was kept.
