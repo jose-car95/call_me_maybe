@@ -1,10 +1,13 @@
-.PHONY: install run debug clean fclean lint lint-strict test
+.PHONY: install run trace debug clean fclean lint lint-strict test
 
 install:
 	uv sync
 
 run:
 	uv run python -m src
+
+trace:
+	uv run python -m src --trace
 
 debug:
 	uv run python -m pdb -m src
