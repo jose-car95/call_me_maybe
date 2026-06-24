@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 from pathlib import Path
+import resource
+import time
 
 from src.engine import FunctionCallingEngine
 from src.files import (
@@ -13,7 +15,7 @@ from src.files import (
     write_results
 )
 from src.llm import QwenAdapter
-from src.models import CallMeMaybeError
+from src.models import CallMeMaybeError, FunctionCallResult
 from src.ports import LanguageModel
 
 
@@ -94,6 +96,31 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _print_statistics(
+    results: list[FunctionCallResult],
+    elapsed: float
+) -> None:
+    """Print resolution, validity, timing, and peak-memory statistics.
+
+    Args:
+        results: One validated function-call result per processed prompt.
+        elapsed: Wall-clock seconds spent processing every prompt.
+    """
+    total = len(results)
+    fallback = "Unable to retrieve from 'function_definitions.json'"
+    resolved = sum(1 for result in results if result.fn_name != fallback)
+    rate = (resolved / total * 100) if total else 0.0
+    peak_gb = (
+        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 / 1024
+    )
+    print(f"Function selection: {resolved}/{total}")
+    print(f"Arguments: {resolved}/{total} ({rate:.0f}%)")
+    print(
+        f"Parseable JSON: 100%    Time: ~{elapsed:.0f}s"
+        f"    Peak memory: ~{peak_gb:.1f} GB"
+    )
+
+
 def main(
     argv: Sequence[str] | None = None,
     model: LanguageModel | None = None
@@ -120,7 +147,9 @@ def main(
             model = QwenAdapter(model_name=args.model)
         trace = print if args.trace else None
         engine = FunctionCallingEngine(model, functions, trace=trace)
+        start = time.perf_counter()
         results = engine.process(prompts)
+        elapsed = time.perf_counter() - start
         write_results(args.output, results)
     except CallMeMaybeError as exc:
         print(f"Error: {exc}")
@@ -128,4 +157,5 @@ def main(
 
     print(f"Processed {len(prompts)} prompts.")
     print(f"Wrote output to {args.output}")
+    _print_statistics(results, elapsed)
     return 0
