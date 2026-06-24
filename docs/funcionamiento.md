@@ -124,12 +124,10 @@ src/constrained_decoder.py ConstrainedDecoder.choose(): selección token a token
 src/arguments.py           extracción de argumentos y generación de candidatos
 src/schema_validator.py    validación recursiva de args contra el esquema
 src/engine.py              FunctionCallingEngine: orquesta el flujo por prompt
-src/constants.py           valores compartidos como funciones (sin globales)
 ```
 
 Estructura plana a propósito: un único caso de uso, sin capas innecesarias. **Sin
-variables globales** (restricción autoimpuesta): incluso las constantes se exponen
-como funciones.
+variables globales** (restricción autoimpuesta).
 
 ---
 
@@ -322,10 +320,6 @@ rápido y determinista, sin cargar Qwen.
   `ModelInferenceError`, añade el **fallback controlado** (ver §11). Conserva el orden
   de entrada.
 
-### `src/constants.py`
-`unable_to_retrieve_fn_name()` → el `fn_name` del fallback. Función sin estado, no
-variable global.
-
 ---
 
 ## 7. Decodificación restringida a fondo
@@ -513,7 +507,7 @@ esquema" del subject.
   ```json
   { "prompt": "...", "fn_name": "Unable to retrieve from 'function_definitions.json'", "args": {} }
   ```
-  El texto sale de `constants.unable_to_retrieve_fn_name()`.
+  El texto es un literal en `engine.py::process` (único punto donde se usa).
 - Defensa: *"prefiero un resultado controlado para ese caso a romper toda la
   ejecución; la salida sigue siendo JSON válido."*
 
@@ -628,7 +622,7 @@ probables, con ubicación y qué vigilar:
    - Tocar: `cli.py` (`parse_args` y `main`).
 
 7. **Cambiar el fallback** (p.ej. omitir el prompt en vez de "Unable to...").
-   - Tocar: `engine.py` (`process`) y `constants.py`.
+   - Tocar: `engine.py` (`process`).
 
 8. **Imprimir estadísticas** (cuántos JSON válidos / nº de fallbacks).
    - Tocar: `cli.py` (`main`, tras `engine.process`).
@@ -675,4 +669,4 @@ Qwen3-1.7B (`--model`): también 11/11 en función y argumentos.
 - "¿Dónde llamas al modelo?" → `llm.py::QwenAdapter.get_logits` → SDK `get_logits_from_input_ids`.
 - "¿Dónde lees/escribes JSON?" → `files.py`.
 - "¿Dónde está el manejo de errores?" → excepciones en `models.py`, captura en `cli.py::main` y `engine.py::process`.
-- "¿Dónde está el fallback?" → `engine.py::process` + `constants.py`.
+- "¿Dónde está el fallback?" → `engine.py::process`.

@@ -9,7 +9,6 @@ from src.arguments import (
     extract_arguments,
     value_candidates
 )
-from src.constants import unable_to_retrieve_fn_name
 from src.constrained_decoder import ConstrainedDecoder
 from src.models import (
     FunctionCallResult,
@@ -228,7 +227,10 @@ class FunctionCallingEngine:
                 results.append(
                     FunctionCallResult(
                         prompt=prompt.prompt,
-                        fn_name=unable_to_retrieve_fn_name(),
+                        fn_name=(
+                            "Unable to retrieve from "
+                            "'function_definitions.json'"
+                        ),
                         args={}
                     )
                 )
